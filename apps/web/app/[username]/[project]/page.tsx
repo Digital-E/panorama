@@ -39,7 +39,7 @@ export default async function ProjectPage({ params }: Props) {
   const { profile, project } = result;
 
   return (
-    <main className="mx-auto flex w-full max-w-(--container-column) flex-col gap-(--spacing-gutter) p-(--spacing-gutter)">
+    <main data-page="project" className="mx-auto flex min-h-dvh w-full max-w-(--container-column) flex-col gap-(--spacing-gutter) bg-(--color-canvas) p-(--spacing-gutter)">
       <nav>
         <Link
           href={`/${profile.username}`}
