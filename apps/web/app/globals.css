@@ -56,6 +56,13 @@ body {
   outline-offset: 2px;
 }
 
+/* The Sheet programmatically focuses its (non-interactive) container on open to
+ * keep focus inside the modal; suppress the focus ring there so it doesn't paint
+ * a blue border when the sheet appears. Real controls still get :focus-visible. */
+dialog [tabindex="-1"]:focus-visible {
+  outline: none;
+}
+
 /* Suppress the iOS Safari tap-highlight box (shows as a blue/black border
  * around buttons on touch). Keyboard focus still uses :focus-visible above. */
 button,

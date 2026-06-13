@@ -143,11 +143,16 @@ export function Sheet({
 
       if (!dialog.open) {
         lockScroll();
+        // showModal() auto-focuses the first focusable element. Our sheet sits
+        // at the *bottom* of the viewport, so focusing it (or its close button)
+        // makes iOS scroll it into the visual viewport — at scrollY 0 the URL
+        // bar is expanded and the sheet is below the fold, so Safari yanks the
+        // page to reveal it. Point autofocus at the overlay (top of viewport,
+        // already visible) instead, then move focus to the sheet without
+        // scrolling. The overlay isn't a button, so no focus ring shows either.
+        overlay?.setAttribute("autofocus", "");
         dialog.showModal();
-        // showModal() auto-focuses the first focusable element (the Close/drag
-        // handle), which paints the :focus-visible ring on open. Redirect focus
-        // to the non-interactive sheet container so no button shows a ring.
-        sheet.focus();
+        sheet.focus({ preventScroll: true });
       }
 
       // Web Animations API starts immediately — no React re-render race.
@@ -286,7 +291,8 @@ export function Sheet({
       <div
         ref={overlayRef}
         onClick={onClose}
-        className="absolute inset-0 bg-black/60"
+        tabIndex={-1}
+        className="absolute inset-0 bg-black/60 outline-none"
       />
 
       <div
