@@ -16,8 +16,8 @@
   --color-accent: #0a84ff;            /* submit button — iOS system blue */
   --color-glass: rgb(28 29 32 / 0.72);/* floating pills over imagery */
 
-  /* Type — design reads as SF Pro; Inter is the licensed web stand-in */
-  --font-sans: var(--font-inter), -apple-system, "SF Pro Text", system-ui, sans-serif;
+  --font-sans: system-ui, sans-serif;
+  --text-lg: 1.25rem;
 
   /* Shape */
   --radius-card: 24px;   /* hero, project & content cards */
@@ -46,6 +46,7 @@ body {
   background: var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-sans);
+  line-height: 1.5em;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -53,6 +54,8 @@ body {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
+
+/* Sheet animations are handled entirely via the Web Animations API in Sheet.tsx */
 
 /* Full-viewport dialog base — Sheet hides the native backdrop via backdrop:hidden */
 dialog {

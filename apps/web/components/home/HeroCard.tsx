@@ -16,8 +16,8 @@ export function HeroCard({ profile }: { profile: Profile }) {
       />
       <div className="absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/55 to-transparent" />
       <header className="absolute inset-x-0 bottom-0 p-6">
-        <h1 className="text-[28px] font-medium leading-tight">{profile.displayName}</h1>
-        {profile.role && <p className="mt-0.5 text-lg text-white/70">{profile.role}</p>}
+        <h1 className="text-2xl font-medium leading-tight">{profile.displayName}</h1>
+        {profile.role && <p className="mt-0.5 text-[18px] text-white/70">{profile.role}</p>}
       </header>
     </Card>
   );

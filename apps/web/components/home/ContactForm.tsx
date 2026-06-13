@@ -35,34 +35,39 @@ export function ContactForm({
     }
   }
 
-  const fieldClass =
-    "w-full rounded-(--radius-field) bg-field px-6 py-5 text-[17px] placeholder:text-ink/80 focus:outline-none focus-visible:outline-2 focus-visible:outline-accent";
+  // placeholder=" " (space) lets CSS :placeholder-shown detect empty state without showing text
+  const inputClass =
+    "peer w-full rounded-(--radius-field) bg-field px-6 pt-7 pb-3 placeholder:opacity-0 focus:outline-none focus-visible:outline-2 focus-visible:outline-accent";
+
+  // Default = floated (has value). peer-placeholder-shown = centered (empty). peer-focus = floated (typing).
+  const labelClass =
+    "pointer-events-none absolute left-6 top-3.5 text-xs text-ink/50 transition-all duration-200 " +
+    "peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:text-base " +
+    "peer-focus:top-3.5 peer-focus:translate-y-0 peer-focus:text-xs";
 
   return (
     <div className="space-y-4">
-      <input
-        type="text"
-        placeholder="Name"
-        autoComplete="name"
-        value={values.name}
-        onChange={set("name")}
-        className={fieldClass}
-      />
-      <input
-        type="email"
-        placeholder="Email"
-        autoComplete="email"
-        value={values.email}
-        onChange={set("email")}
-        className={fieldClass}
-      />
-      <textarea
-        placeholder="Message"
-        rows={5}
-        value={values.message}
-        onChange={set("message")}
-        className={`${fieldClass} resize-none`}
-      />
+      <div className="relative">
+        <input type="text" id="f-name" placeholder=" " autoComplete="name"
+          value={values.name} onChange={set("name")} className={inputClass} />
+        <label htmlFor="f-name" className={labelClass}>Name</label>
+      </div>
+
+      <div className="relative">
+        <input type="email" id="f-email" placeholder=" " autoComplete="email"
+          value={values.email} onChange={set("email")} className={inputClass} />
+        <label htmlFor="f-email" className={labelClass}>Email</label>
+      </div>
+
+      <div className="relative">
+        <textarea id="f-message" placeholder=" " rows={5}
+          value={values.message} onChange={set("message")}
+          className={`${inputClass} resize-none`} />
+        <label htmlFor="f-message"
+          className="pointer-events-none absolute left-6 top-3.5 text-xs text-ink/50 transition-all duration-200 peer-placeholder-shown:top-7 peer-placeholder-shown:text-base peer-focus:top-3.5 peer-focus:text-xs">
+          Message
+        </label>
+      </div>
       <div className="flex items-center justify-end gap-4 pt-2">
         {status === "error" && (
           <p className="text-sm text-ink-muted">Couldn&apos;t send — try again.</p>
@@ -70,7 +75,7 @@ export function ContactForm({
         <button
           onClick={submit}
           disabled={status === "sending" || status === "sent"}
-          className="rounded-full bg-accent px-8 py-4 text-[17px] text-white transition-opacity disabled:opacity-60"
+          className="rounded-full bg-accent px-8 py-4 text-white transition-opacity disabled:opacity-60"
         >
           {status === "sent" ? "Sent" : status === "sending" ? "Sending…" : "Submit"}
         </button>

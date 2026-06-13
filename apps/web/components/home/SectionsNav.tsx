@@ -63,7 +63,7 @@ export function SectionsNav({ profile }: { profile: Profile }) {
       )}
 
       <Sheet open={open === "biography"} onClose={close} title="Biography">
-        <div className="space-y-5 text-[17px] leading-relaxed text-ink/90">
+        <div className="space-y-5 leading-relaxed text-ink/90">
           {profile.biography?.split("\n\n").map((para, i) => (
             <p key={i}>{para}</p>
           ))}
@@ -77,7 +77,7 @@ export function SectionsNav({ profile }: { profile: Profile }) {
               <p className="text-[15px] text-ink-muted">{entry.period}</p>
               <p className="mt-1 text-xl">{entry.title}</p>
               {entry.subtitle && (
-                <p className="mt-0.5 text-[17px] text-ink-muted">{entry.subtitle}</p>
+                <p className="mt-0.5 text-ink-muted">{entry.subtitle}</p>
               )}
             </li>
           ))}
