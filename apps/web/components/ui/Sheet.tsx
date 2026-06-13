@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 
 // Tweak these to adjust feel
 const DURATION_IN  = 320; // ms — sheet slide up
@@ -39,6 +40,11 @@ export function Sheet({
   const overlayRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
+  // The dialog is portaled to <body> (see the return) — it must NOT live under
+  // the <main> we scale for the recede, or the transform would re-anchor it.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   // Track running Web Animations so we can cancel them before starting new ones.
   const sheetAnim   = useRef<Animation | undefined>(undefined);
   const overlayAnim = useRef<Animation | undefined>(undefined);
@@ -60,11 +66,22 @@ export function Sheet({
   // leave the page exactly where it is and just swallow scroll gestures, which
   // keeps the bar in whatever state it was. Gestures inside the sheet's own
   // scroll area pass through (overscroll-behavior:contain stops them chaining).
+  // Scroll-lock WITHOUT moving the page, plus the iOS "presenting" recede.
+  // Two hard-won constraints shaped this:
+  //  • Don't lock with `position: fixed`/`overflow: hidden` — making the page
+  //    non-scrollable is what makes iOS Safari collapse its (expanded, at
+  //    scrollY 0) URL bar to fit the modal, i.e. the "jump". So we leave the
+  //    page in place and just swallow scroll gestures.
+  //  • Don't put the recede transform on an ancestor of the <dialog> — a
+  //    transform creates a containing block that re-anchors the fixed dialog to
+  //    the scrolled-away document, jumping it. So the dialog is portaled to
+  //    <body> and we scale <main> (its sibling) instead.
   const isLocked = useRef(false);
+  const pageElRef = useRef<HTMLElement | null>(null);
 
   const blockScroll = useCallback((e: Event) => {
     const area = scrollAreaRef.current;
-    if (area && area.contains(e.target as Node)) return;
+    if (area && area.contains(e.target as Node)) return; // let the sheet scroll
     e.preventDefault();
   }, []);
 
@@ -74,27 +91,28 @@ export function Sheet({
     document.addEventListener("wheel", blockScroll, { passive: false });
     const html = document.documentElement;
     html.style.overscrollBehavior = "none"; // kill rubber-band (doesn't lock scroll)
-    // <html> paints the canvas revealed by the recede; a touch darker than
-    // --color-canvas so the gap reads at the sheet edges without a hard strip.
-    html.style.background = PAGE_RECEDE_VOID;
-    // Recede the page, anchored to the viewport centre so it reads correctly at
-    // any scroll offset. The <dialog> is in the top layer, so this body
-    // transform never touches the sheet or its overlay.
-    const body = document.body;
-    body.style.transformOrigin = `50% ${window.scrollY + window.innerHeight / 2}px`;
-    body.style.transition = `transform ${DURATION_IN}ms ease, border-radius ${DURATION_IN}ms ease`;
-    body.style.transform = `translateY(${PAGE_TRANSLATE}) scale(${PAGE_SCALE})`;
-    body.style.borderRadius = PAGE_RADIUS;
+    html.style.background = PAGE_RECEDE_VOID; // canvas revealed by the recede
+    const page = (pageElRef.current = document.querySelector("main"));
+    if (page) {
+      // Origin at the viewport centre (in <main>'s coords) so the scale reads
+      // correctly at any scroll offset.
+      page.style.transformOrigin = `50% ${window.scrollY + window.innerHeight / 2}px`;
+      page.style.transition = `transform ${DURATION_IN}ms ease, border-radius ${DURATION_IN}ms ease`;
+      page.style.transform = `translateY(${PAGE_TRANSLATE}) scale(${PAGE_SCALE})`;
+      page.style.borderRadius = PAGE_RADIUS;
+    }
   };
 
   // Scale the page back up — called as the close starts so it animates in sync
   // with the sheet sliding away (listeners are torn down later, in unlockScroll).
   const scaleUp = () => {
     if (!isLocked.current) return;
-    const body = document.body;
-    body.style.transition = `transform ${DURATION_OUT}ms ease-in, border-radius ${DURATION_OUT}ms ease-in`;
-    body.style.transform = "";
-    body.style.borderRadius = "";
+    const page = pageElRef.current;
+    if (page) {
+      page.style.transition = `transform ${DURATION_OUT}ms ease-in, border-radius ${DURATION_OUT}ms ease-in`;
+      page.style.transform = "";
+      page.style.borderRadius = "";
+    }
   };
 
   const unlockScroll = () => {
@@ -102,14 +120,17 @@ export function Sheet({
     isLocked.current = false;
     document.removeEventListener("touchmove", blockScroll);
     document.removeEventListener("wheel", blockScroll);
-    const body = document.body;
-    body.style.transform = "";
-    body.style.transformOrigin = "";
-    body.style.borderRadius = "";
-    body.style.transition = "";
     const html = document.documentElement;
     html.style.overscrollBehavior = "";
     html.style.background = "";
+    const page = pageElRef.current;
+    if (page) {
+      page.style.transform = "";
+      page.style.transformOrigin = "";
+      page.style.borderRadius = "";
+      page.style.transition = "";
+    }
+    pageElRef.current = null;
   };
 
   // Safety net: never leave the page locked if the sheet unmounts while open.
@@ -270,7 +291,9 @@ export function Sheet({
     }
   };
 
-  return (
+  if (!mounted) return null;
+
+  return createPortal(
     <dialog
       ref={dialogRef}
       onClose={() => { if (open) onClose(); }}
@@ -310,6 +333,7 @@ export function Sheet({
           <div className="pt-6">{children}</div>
         </div>
       </div>
-    </dialog>
+    </dialog>,
+    document.body,
   );
 }
