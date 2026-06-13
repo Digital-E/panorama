@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import type { Profile } from "@portfolio/schema";
 import { Card } from "@/components/ui/Card";
 import { Sheet } from "@/components/ui/Sheet";
@@ -8,14 +8,22 @@ import { ContactForm } from "./ContactForm";
 
 type SheetName = "biography" | "experience" | "contact" | null;
 
-/**
- * The Biography row card and the Experience / Work / Contact nav group.
- * Biography, Experience and Contact open as bottom sheets (per the
- * frames); Work scrolls to the project cards below.
- */
 export function SectionsNav({ profile }: { profile: Profile }) {
   const [open, setOpen] = useState<SheetName>(null);
   const close = () => setOpen(null);
+
+  const [toast, setToast] = useState(false);
+  const toastTimeout = useRef<ReturnType<typeof setTimeout>>();
+
+  const handleSent = () => {
+    setOpen(null);
+    // Wait for sheet leave animation before showing toast
+    setTimeout(() => {
+      clearTimeout(toastTimeout.current);
+      setToast(true);
+      toastTimeout.current = setTimeout(() => setToast(false), 4000);
+    }, 400);
+  };
 
   const rows: { label: string; onClick: () => void }[] = [];
   if (profile.experience.length > 0)
@@ -63,7 +71,7 @@ export function SectionsNav({ profile }: { profile: Profile }) {
       )}
 
       <Sheet open={open === "biography"} onClose={close} title="Biography">
-        <div className="space-y-5 leading-relaxed text-ink/90">
+        <div className="space-y-5 text-ink/90">
           {profile.biography?.split("\n\n").map((para, i) => (
             <p key={i}>{para}</p>
           ))}
@@ -75,7 +83,7 @@ export function SectionsNav({ profile }: { profile: Profile }) {
           {profile.experience.map((entry) => (
             <li key={entry.id}>
               <p className="text-[15px] text-ink-muted">{entry.period}</p>
-              <p className="mt-1 text-xl">{entry.title}</p>
+              <p className="mt-1 text-lg">{entry.title}</p>
               {entry.subtitle && (
                 <p className="mt-0.5 text-ink-muted">{entry.subtitle}</p>
               )}
@@ -85,8 +93,18 @@ export function SectionsNav({ profile }: { profile: Profile }) {
       </Sheet>
 
       <Sheet open={open === "contact"} onClose={close} title="Contact">
-        <ContactForm username={profile.username} onSent={close} />
+        <ContactForm username={profile.username} onSent={handleSent} />
       </Sheet>
+
+      {/* Toast — rendered outside <dialog> so it isn't clipped by it */}
+      <div
+        aria-live="polite"
+        className={`fixed inset-x-(--spacing-gutter) bottom-(--spacing-gutter) z-50 mx-auto max-w-(--container-column) rounded-(--radius-sheet) bg-surface px-6 py-5 shadow-xl transition-all duration-300 ${
+          toast ? "opacity-100 translate-y-0" : "pointer-events-none opacity-0 translate-y-3"
+        }`}
+      >
+        <p className="text-ink">Thanks for getting in touch. I&apos;ll get back to you soon.</p>
+      </div>
     </>
   );
 }

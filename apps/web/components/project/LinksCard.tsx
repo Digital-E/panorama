@@ -7,7 +7,7 @@ type Data = z.infer<typeof LinksBlockSchema>["data"];
 export function LinksCard({ data }: { data: Data }) {
   return (
     <Card className="px-6 py-6">
-      <h2 className="text-[15px] text-ink-muted">{data.heading}</h2>
+      <h2 className="text-ink-muted">{data.heading}</h2>
       <ul className="mt-3 space-y-2.5">
         {data.links.map((link) => (
           <li key={link.url}>
@@ -15,7 +15,7 @@ export function LinksCard({ data }: { data: Data }) {
               href={link.url}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center gap-1.5 text-[17px] underline underline-offset-4 hover:text-ink-muted"
+              className="inline-flex items-center gap-1.5 underline underline-offset-4 hover:text-ink-muted"
             >
               {link.label}
               <ExternalIcon />

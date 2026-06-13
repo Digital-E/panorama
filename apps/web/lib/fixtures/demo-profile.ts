@@ -51,10 +51,10 @@ export const demoProfile: Profile = {
           data: {
             caption: "Playa del Carmen 2026",
             images: [
-              img("1534528741775-53994a69daeb", 1400, 1750, "Figure in shadow"),
-              img("1517841905240-472988babdf9", 1400, 1750, "Portrait, low light"),
-              img("1529626455594-4ff0802cfb7e", 1400, 1750, "Portrait against stone"),
-              img("1488426862026-3ee34a7d66df", 1400, 1750, "Portrait, soft light"),
+              { src: "/project-1.jpg", width: 1600, height: 2000, alt: "Figure in shadow" },
+              { src: "/project-2.jpg", width: 1600, height: 1200, alt: "Sea, summer campaign" },
+              { src: "/project-3.jpg", width: 1600, height: 1300, alt: "Studio with exercise ball" },
+              { src: "/project-1.jpg", width: 1600, height: 2000, alt: "Figure in shadow" },
             ],
           },
         },
@@ -104,8 +104,8 @@ export const demoProfile: Profile = {
           data: {
             caption: "Federica 2025",
             images: [
-              img("1507525428034-b723cf961d3e", 1400, 1100, "At sea"),
-              img("1519046904884-53103b34b206", 1400, 1100, "Beach, hard light"),
+              { src: "/project-2.jpg", width: 1600, height: 1200, alt: "Sea, summer campaign" },
+              { src: "/project-3.jpg", width: 1600, height: 1300, alt: "Studio with exercise ball" },
             ],
           },
         },

@@ -7,8 +7,8 @@ type Data = z.infer<typeof StoryBlockSchema>["data"];
 export function StoryCard({ data }: { data: Data }) {
   return (
     <Card className="px-6 py-6">
-      <h2 className="text-[15px] text-ink-muted">{data.heading}</h2>
-      <div className="mt-3 space-y-4 text-[17px] leading-relaxed text-ink/90">
+      <h2 className="leading-none text-ink/90">{data.heading}</h2>
+      <div className="mt-2 space-y-4 text-ink-muted">
         {data.text.split("\n\n").map((para, i) => (
           <p key={i}>{para}</p>
         ))}

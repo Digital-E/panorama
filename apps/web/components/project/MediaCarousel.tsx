@@ -47,7 +47,7 @@ export function MediaCarousel({ data }: { data: Data }) {
                 width={image.width}
                 height={image.height}
                 sizes="(min-width: 600px) 600px, 100vw"
-                className="h-auto max-h-[640px] w-full object-cover"
+                className="aspect-square w-full object-cover"
               />
             </button>
           ))}
