@@ -53,6 +53,15 @@ export function Sheet({
   const lockScroll = () => {
     lockedScrollY.current = window.scrollY;
     const body = document.body;
+    const html = document.documentElement;
+    // Pin <html> to the current viewport and make it non-scrollable. Without
+    // this, locking at the very top (scrollY 0) lets iOS Safari collapse its
+    // expanded URL bar to make room for the modal — that viewport resize is the
+    // "jump". (When already scrolled, the bar is collapsed, so it never moves.)
+    html.style.height = `${window.innerHeight}px`;
+    html.style.overflow = "hidden";
+    html.style.overscrollBehavior = "none";
+    html.style.background = "#000";
     body.style.position = "fixed";
     body.style.top = `-${lockedScrollY.current}px`;
     body.style.insetInline = "0";
@@ -65,7 +74,6 @@ export function Sheet({
     body.style.transition = `transform ${DURATION_IN}ms ease, border-radius ${DURATION_IN}ms ease`;
     body.style.transform = `translateY(${PAGE_TRANSLATE}) scale(${PAGE_SCALE})`;
     body.style.borderRadius = PAGE_RADIUS;
-    document.documentElement.style.background = "#000";
   };
 
   // Scale the page back up. Called when the close starts so it animates in sync
@@ -97,6 +105,10 @@ export function Sheet({
     body.style.borderRadius = "";
     body.style.overflow = "";
     body.style.transition = "";
+    // Restore <html> before scrolling so the document is scrollable again.
+    html.style.height = "";
+    html.style.overflow = "";
+    html.style.overscrollBehavior = "";
     html.style.background = "";
     window.scrollTo(0, lockedScrollY.current);
     html.style.scrollBehavior = prevBehavior;
