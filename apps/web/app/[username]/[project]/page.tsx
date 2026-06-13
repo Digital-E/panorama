@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProject, listPublishedUsernames, getProfile } from "@/lib/data";
 import { Card } from "@/components/ui/Card";
 import { ProjectBlockRenderer } from "@/components/project/ProjectBlockRenderer";
+import { SwipeCard } from "@/components/project/SwipeCard";
+import { MediaCarousel } from "@/components/project/MediaCarousel";
+import { ProfileCapsule } from "@/components/project/ProfileCapsule";
 
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -40,15 +42,6 @@ export default async function ProjectPage({ params }: Props) {
 
   return (
     <main data-page="project" className="mx-auto flex min-h-dvh w-full max-w-(--container-column) flex-col gap-(--spacing-gutter) bg-(--color-canvas) p-(--spacing-gutter)">
-      <nav>
-        <Link
-          href={`/${profile.username}`}
-          className="text-sm text-ink-muted transition-colors hover:text-ink"
-        >
-          ← {profile.displayName}
-        </Link>
-      </nav>
-
       <Card className="px-6 py-5">
         <h1 className="text-lg">{project.title}</h1>
         {project.subtitle && (
@@ -56,9 +49,32 @@ export default async function ProjectPage({ params }: Props) {
         )}
       </Card>
 
-      {project.blocks.map((block) => (
-        <ProjectBlockRenderer key={block.id} block={block} />
-      ))}
+      {(() => {
+        const elements: React.ReactNode[] = [];
+        let pendingCarousel: React.ReactNode = null;
+        for (const block of project.blocks) {
+          if (block.type === "media") {
+            if (pendingCarousel) { elements.push(pendingCarousel); pendingCarousel = null; }
+            elements.push(<SwipeCard key={block.id} data={block.data} />);
+            pendingCarousel = <MediaCarousel key={`${block.id}-carousel`} data={block.data} />;
+          } else {
+            elements.push(<ProjectBlockRenderer key={block.id} block={block} />);
+            if (block.type === "quote" && pendingCarousel) {
+              elements.push(pendingCarousel);
+              pendingCarousel = null;
+            }
+          }
+        }
+        if (pendingCarousel) elements.push(pendingCarousel);
+        return elements;
+      })()}
+
+      <ProfileCapsule
+        href={`/${profile.username}`}
+        displayName={profile.displayName}
+        heroSrc={profile.hero.src}
+        heroAlt={profile.hero.alt}
+      />
     </main>
   );
 }

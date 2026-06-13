@@ -13,7 +13,7 @@ export function SectionsNav({ profile }: { profile: Profile }) {
   const close = () => setOpen(null);
 
   const [toast, setToast] = useState(false);
-  const toastTimeout = useRef<ReturnType<typeof setTimeout>>();
+  const toastTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   const handleSent = () => {
     setOpen(null);

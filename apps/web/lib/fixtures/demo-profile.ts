@@ -54,7 +54,6 @@ export const demoProfile: Profile = {
               { src: "/project-1.jpg", width: 1600, height: 2000, alt: "Figure in shadow" },
               { src: "/project-2.jpg", width: 1600, height: 1200, alt: "Sea, summer campaign" },
               { src: "/project-3.jpg", width: 1600, height: 1300, alt: "Studio with exercise ball" },
-              { src: "/project-1.jpg", width: 1600, height: 2000, alt: "Figure in shadow" },
             ],
           },
         },
