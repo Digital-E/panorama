@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, type ReactNode } from "react";
 
 // Tweak these to adjust feel
 const DURATION_IN  = 320; // ms — sheet slide up
@@ -37,6 +37,7 @@ export function Sheet({
   const dialogRef  = useRef<HTMLDialogElement>(null);
   const sheetRef   = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // Track running Web Animations so we can cancel them before starting new ones.
   const sheetAnim   = useRef<Animation | undefined>(undefined);
@@ -52,78 +53,66 @@ export function Sheet({
   // showModal() and only released once the dialog has *fully* closed (after the
   // out-animation) — releasing it when `open` flips would snap the page back
   // while the sheet is still sliding away.
-  const lockedScrollY = useRef(0);
+  // Scroll-lock WITHOUT moving the page. We deliberately avoid `position: fixed`
+  // and `overflow: hidden` on <html>/<body>: making the document non-scrollable
+  // is exactly what makes iOS Safari collapse its (expanded, at scrollY 0) URL
+  // bar to fit the modal — the viewport resize you see as a "jump to top". So we
+  // leave the page exactly where it is and just swallow scroll gestures, which
+  // keeps the bar in whatever state it was. Gestures inside the sheet's own
+  // scroll area pass through (overscroll-behavior:contain stops them chaining).
+  const isLocked = useRef(false);
+
+  const blockScroll = useCallback((e: Event) => {
+    const area = scrollAreaRef.current;
+    if (area && area.contains(e.target as Node)) return;
+    e.preventDefault();
+  }, []);
 
   const lockScroll = () => {
-    lockedScrollY.current = window.scrollY;
-    const body = document.body;
+    isLocked.current = true;
+    document.addEventListener("touchmove", blockScroll, { passive: false });
+    document.addEventListener("wheel", blockScroll, { passive: false });
     const html = document.documentElement;
-    // Pin <html> to the current viewport and make it non-scrollable. Without
-    // this, locking at the very top (scrollY 0) lets iOS Safari collapse its
-    // expanded URL bar to make room for the modal — that viewport resize is the
-    // "jump". (When already scrolled, the bar is collapsed, so it never moves.)
-    html.style.height = `${window.innerHeight}px`;
-    html.style.overflow = "hidden";
-    html.style.overscrollBehavior = "none";
-    // <html> now carries an explicit background, so it paints the viewport canvas
-    // — including the region iOS Safari renders behind its toolbars. Keep it just
-    // a touch darker than the canvas (NOT pure black): enough contrast for the
-    // recede gap to read at the sheet edges, but close enough to the page that it
-    // won't show as a hard strip beneath the bottom address bar.
+    html.style.overscrollBehavior = "none"; // kill rubber-band (doesn't lock scroll)
+    // <html> paints the canvas revealed by the recede; a touch darker than
+    // --color-canvas so the gap reads at the sheet edges without a hard strip.
     html.style.background = PAGE_RECEDE_VOID;
-    body.style.position = "fixed";
-    body.style.top = `-${lockedScrollY.current}px`;
-    body.style.insetInline = "0";
-    body.style.width = "100%";
-    // Recede the page behind the sheet. The gap revealed at the edges shows
-    // through to <html>, kept just below the canvas color above for a subtle
-    // depth cue; the <dialog> is in the top layer so it isn't affected here.
-    body.style.transformOrigin = "50% 0";
-    body.style.overflow = "hidden";
+    // Recede the page, anchored to the viewport centre so it reads correctly at
+    // any scroll offset. The <dialog> is in the top layer, so this body
+    // transform never touches the sheet or its overlay.
+    const body = document.body;
+    body.style.transformOrigin = `50% ${window.scrollY + window.innerHeight / 2}px`;
     body.style.transition = `transform ${DURATION_IN}ms ease, border-radius ${DURATION_IN}ms ease`;
     body.style.transform = `translateY(${PAGE_TRANSLATE}) scale(${PAGE_SCALE})`;
     body.style.borderRadius = PAGE_RADIUS;
   };
 
-  // Scale the page back up. Called when the close starts so it animates in sync
-  // with the sheet sliding away (the scroll-lock itself is released later, once
-  // the dialog has fully closed, to avoid a scroll jump).
+  // Scale the page back up — called as the close starts so it animates in sync
+  // with the sheet sliding away (listeners are torn down later, in unlockScroll).
   const scaleUp = () => {
+    if (!isLocked.current) return;
     const body = document.body;
-    if (body.style.position !== "fixed") return;
     body.style.transition = `transform ${DURATION_OUT}ms ease-in, border-radius ${DURATION_OUT}ms ease-in`;
     body.style.transform = "";
     body.style.borderRadius = "";
   };
 
   const unlockScroll = () => {
+    if (!isLocked.current) return;
+    isLocked.current = false;
+    document.removeEventListener("touchmove", blockScroll);
+    document.removeEventListener("wheel", blockScroll);
     const body = document.body;
-    if (body.style.position !== "fixed") return; // already unlocked
-    // The page sat pinned at scroll 0 while fixed, so restoring the offset is a
-    // jump from the top — and `html { scroll-behavior: smooth }` would animate
-    // it (the visible "yank"). Force the restore to be instant.
-    const html = document.documentElement;
-    const prevBehavior = html.style.scrollBehavior;
-    html.style.scrollBehavior = "auto";
-    body.style.position = "";
-    body.style.top = "";
-    body.style.insetInline = "";
-    body.style.width = "";
     body.style.transform = "";
     body.style.transformOrigin = "";
     body.style.borderRadius = "";
-    body.style.overflow = "";
     body.style.transition = "";
-    // Restore <html> before scrolling so the document is scrollable again.
-    html.style.height = "";
-    html.style.overflow = "";
+    const html = document.documentElement;
     html.style.overscrollBehavior = "";
     html.style.background = "";
-    window.scrollTo(0, lockedScrollY.current);
-    html.style.scrollBehavior = prevBehavior;
   };
 
-  // Safety net: never leave the body locked if the sheet unmounts while open.
+  // Safety net: never leave the page locked if the sheet unmounts while open.
   useEffect(() => unlockScroll, []);
 
   useEffect(() => {
@@ -316,7 +305,7 @@ export function Sheet({
 
         <div className="h-px shrink-0 bg-surface-edge" />
 
-        <div className="min-h-0 overflow-y-auto px-6 pb-12 pt-8">
+        <div ref={scrollAreaRef} className="min-h-0 overflow-y-auto overscroll-contain px-6 pb-12 pt-8">
           <h2 className="text-lg font-medium">{title}</h2>
           <div className="pt-6">{children}</div>
         </div>
