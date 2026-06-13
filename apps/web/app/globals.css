@@ -76,13 +76,37 @@ a,
 /* Full-viewport dialog base — Sheet hides the native backdrop via backdrop:hidden */
 dialog {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: auto; /* don't pin to the layout-viewport bottom (behind iOS toolbar) */
   margin: 0;
   width: 100%;
   max-width: 100%;
-  height: 100%;
-  max-height: 100%;
+  /* Track the dynamic visual viewport so the sheet sits above the iOS toolbar
+   * and follows it as it collapses, instead of snapping when it does. */
+  height: 100dvh;
+  max-height: 100dvh;
   padding: 0;
+}
+
+/* Center the image inside each Lightbox slide. swiper/css sets
+ * `.swiper-slide { display: block }` and loads after Tailwind, so a plain
+ * `flex` utility loses; this two-class selector wins on specificity. */
+.swiper-slide.lightbox-slide {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Kill the browser's touch panning on the lightbox Swiper. swiper/css forces
+ * `.swiper-horizontal { touch-action: pan-y }`, and pan-y is what lets iOS
+ * pull-to-refresh fire on the down-drag. Swiper pages via pointer events, so
+ * `none` here breaks nothing — it just stops native scroll/refresh. */
+.lightbox-swiper,
+.lightbox-swiper .swiper-wrapper,
+.lightbox-swiper .swiper-slide {
+  touch-action: none !important;
 }
 
 /* Hide scrollbars inside carousels without killing scroll */

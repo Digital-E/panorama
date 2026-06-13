@@ -1,11 +1,25 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Swiper, SwiperSlide } from "swiper/react";
+import { Keyboard } from "swiper/modules";
+import type { Swiper as SwiperClass } from "swiper";
 import type { ImageAsset } from "@portfolio/schema";
 import { GlassPill } from "@/components/ui/GlassPill";
 
-const DURATION = 320;
+import "swiper/css";
 
+const SPEED = 320;
+const DISMISS_DY = 120; // px dragged past which a release closes
+const DISMISS_VY = 0.5; // px/ms flick velocity that closes regardless of distance
+const SETTLE = 260; // ms for the snap-back / fly-out animation
+
+/**
+ * Full-screen image viewer (Gallery frame). Horizontal swipes (Swiper) page
+ * between images; a downward drag dismisses it Instagram-style — the image
+ * follows the finger and scales down while the backdrop and chrome fade, and a
+ * release past the threshold (or a quick flick) flies it out and closes.
+ */
 export function Lightbox({
   images,
   index,
@@ -20,187 +34,215 @@ export function Lightbox({
   onClose: () => void;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
-  const trackRef = useRef<HTMLDivElement>(null);
-  const drag = useRef({ active: false, startX: 0, lastX: 0, moved: false });
-  const animating = useRef(false);
+  const swiperRef = useRef<SwiperClass | null>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const chromeRef = useRef<HTMLDivElement>(null);
   const n = images.length;
   const many = n > 1;
-
-  // The real image on screen (drives the counter). Seeded once from the prop;
-  // afterwards the viewer owns its position so it can loop past the ends.
   const [current, setCurrent] = useState(index);
+  const initial = useRef(index).current;
 
-  // To loop seamlessly the track carries a clone of the last image before the
-  // first and a clone of the first after the last:
-  //   [ lastⁿ⁻¹ | 0 | 1 | … | n-1 | 0¹ ]
-  // Real image i therefore lives at slot i+1. Crossing onto a clone animates
-  // normally, then we snap (no transition) to the matching real slot — same
-  // pixels, so the jump is invisible.
-  const slides = many ? [images[n - 1], ...images, images[0]] : images;
-  const slotRef = useRef(many ? index + 1 : 0);
+  // Destroying a looped Swiper emits a final slideChange; without this guard it
+  // fires onIndexChange after close set the index to null and re-opens the viewer.
+  const closing = useRef(false);
+  const handleClose = () => {
+    closing.current = true;
+    onClose();
+  };
+
+  const drag = useRef({ active: false, decided: false, vertical: false, startX: 0, startY: 0, lastY: 0, lastT: 0, vy: 0 });
 
   useEffect(() => {
     dialogRef.current?.showModal();
   }, []);
 
-  // Commit the opening position before the first paint — no transition, so the
-  // viewer never flashes slot 0.
-  useLayoutEffect(() => {
-    const t = trackRef.current;
-    if (!t) return;
-    t.style.transition = "none";
-    t.style.transform = `translate3d(${-slotRef.current * 100}vw, 0, 0)`;
+  // Lock the page behind the viewer (the backdrop hides any reflow); restore on close.
+  useEffect(() => {
+    const y = window.scrollY;
+    const body = document.body;
+    const html = document.documentElement;
+    body.style.position = "fixed";
+    body.style.top = `-${y}px`;
+    body.style.insetInline = "0";
+    body.style.width = "100%";
+    html.style.overscrollBehavior = "none"; // no pull-to-refresh on the down-drag
+    html.style.touchAction = "none"; // disable browser touch panning page-wide
+    return () => {
+      const prev = html.style.scrollBehavior;
+      html.style.scrollBehavior = "auto";
+      body.style.position = "";
+      body.style.top = "";
+      body.style.insetInline = "";
+      body.style.width = "";
+      html.style.overscrollBehavior = "";
+      html.style.touchAction = "";
+      window.scrollTo(0, y);
+      html.style.scrollBehavior = prev;
+    };
   }, []);
 
+  // Kill iOS pull-to-refresh while the viewer is open. We must catch touchmove
+  // in the CAPTURE phase (before the browser commits to the overscroll and
+  // before Swiper can stopPropagation) and preventDefault it. Swiper drags via
+  // pointer events, and so does our dismiss, so blocking touch scrolling here
+  // breaks neither — it only stops the native scroll/refresh.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "ArrowRight") go(1);
-      if (e.key === "ArrowLeft") go(-1);
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  });
+    const prevent = (e: TouchEvent) => e.preventDefault();
+    document.addEventListener("touchmove", prevent, { passive: false, capture: true });
+    return () => document.removeEventListener("touchmove", prevent, { capture: true } as EventListenerOptions);
+  }, []);
 
-  function go(dir: 1 | -1) {
-    const t = trackRef.current;
-    if (!t || !many || animating.current) return;
-    animating.current = true;
-
-    const targetSlot = slotRef.current + dir;
-    const newReal = (current + dir + n) % n;
-
-    t.style.transition = `transform ${DURATION}ms ease`;
-    t.style.transform = `translate3d(${-targetSlot * 100}vw, 0, 0)`;
-
-    // transitionend won't fire if the position didn't actually change (e.g. a
-    // drag released exactly on the target), so a timeout backstops it.
-    let finished = false;
-    const done = () => {
-      if (finished) return;
-      finished = true;
-      clearTimeout(fallback);
-      t.removeEventListener("transitionend", done);
-      // If we landed on a clone, snap to the equivalent real slot instantly.
-      let normalized = targetSlot;
-      if (targetSlot === n + 1) normalized = 1;
-      else if (targetSlot === 0) normalized = n;
-      if (normalized !== targetSlot) {
-        t.style.transition = "none";
-        t.style.transform = `translate3d(${-normalized * 100}vw, 0, 0)`;
-        void t.offsetWidth;
-      }
-      slotRef.current = normalized;
-      animating.current = false;
-    };
-    const fallback = setTimeout(done, DURATION + 60);
-    t.addEventListener("transitionend", done);
-
-    setCurrent(newReal);
-    onIndexChange(newReal);
+  // Map a drag distance to the live transform/opacities (1:1 with the finger).
+  function paint(dy: number) {
+    const d = Math.max(dy, 0);
+    const p = Math.min(d / ((window.innerHeight || 800) * 0.45), 1);
+    if (stageRef.current) stageRef.current.style.transform = `translateY(${d}px) scale(${1 - 0.16 * p})`;
+    if (overlayRef.current) overlayRef.current.style.opacity = String(1 - 0.75 * p);
+    if (chromeRef.current) chromeRef.current.style.opacity = String(1 - Math.min(p * 2, 1));
   }
 
-  // Animate back to the resting slot (drag released below threshold).
-  function settle() {
-    const t = trackRef.current;
-    if (!t) return;
-    t.style.transition = `transform ${DURATION}ms ease`;
-    t.style.transform = `translate3d(${-slotRef.current * 100}vw, 0, 0)`;
+  function setTransition(on: boolean) {
+    if (stageRef.current) stageRef.current.style.transition = on ? `transform ${SETTLE}ms ease` : "none";
+    if (overlayRef.current) overlayRef.current.style.transition = on ? `opacity ${SETTLE}ms ease` : "none";
+    if (chromeRef.current) chromeRef.current.style.transition = on ? `opacity ${SETTLE}ms ease` : "none";
   }
 
   const onPointerDown = (e: React.PointerEvent) => {
-    if (!many || animating.current) return;
-    const t = trackRef.current;
-    if (t) t.style.transition = "none";
-    drag.current = { active: true, startX: e.clientX, lastX: e.clientX, moved: false };
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    drag.current = { active: true, decided: false, vertical: false, startX: e.clientX, startY: e.clientY, lastY: e.clientY, lastT: Date.now(), vy: 0 };
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
     const d = drag.current;
     if (!d.active) return;
-    d.lastX = e.clientX;
-    const vw = window.innerWidth;
-    let dx = e.clientX - d.startX;
-    if (Math.abs(dx) > 6) d.moved = true;
-    // Page-bounded: one gesture reveals at most the neighbouring clone/slide.
-    dx = Math.max(-vw, Math.min(vw, dx));
-    if (trackRef.current) {
-      trackRef.current.style.transform = `translate3d(calc(${-slotRef.current * 100}vw + ${dx}px), 0, 0)`;
+    const dx = e.clientX - d.startX;
+    const dy = e.clientY - d.startY;
+
+    // First meaningful move decides: a downward, mostly-vertical drag is a
+    // dismiss; anything else is left to Swiper (horizontal paging).
+    if (!d.decided) {
+      if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
+      d.decided = true;
+      d.vertical = dy > 0 && Math.abs(dy) > Math.abs(dx);
+      if (d.vertical) {
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+        if (swiperRef.current) swiperRef.current.allowTouchMove = false;
+        setTransition(false);
+      }
     }
+    if (!d.vertical) return;
+
+    const now = Date.now();
+    const dt = now - d.lastT;
+    if (dt > 0) d.vy = (e.clientY - d.lastY) / dt;
+    d.lastY = e.clientY;
+    d.lastT = now;
+    paint(dy);
   };
 
   const onPointerUp = () => {
     const d = drag.current;
     if (!d.active) return;
     d.active = false;
-    const dx = d.lastX - d.startX;
-    const threshold = window.innerWidth * 0.2;
-    if (dx <= -threshold) go(1);
-    else if (dx >= threshold) go(-1);
-    else settle();
+    if (swiperRef.current) swiperRef.current.allowTouchMove = true;
+    if (!d.vertical) return;
+
+    const dy = d.lastY - d.startY;
+    setTransition(true);
+    if (dy > DISMISS_DY || d.vy > DISMISS_VY) {
+      const h = window.innerHeight || 800;
+      if (stageRef.current) stageRef.current.style.transform = `translateY(${h}px) scale(0.8)`;
+      if (overlayRef.current) overlayRef.current.style.opacity = "0";
+      if (chromeRef.current) chromeRef.current.style.opacity = "0";
+      setTimeout(handleClose, SETTLE - 40);
+    } else {
+      if (stageRef.current) stageRef.current.style.transform = "";
+      if (overlayRef.current) overlayRef.current.style.opacity = "";
+      if (chromeRef.current) chromeRef.current.style.opacity = "";
+    }
   };
 
   const btn = "flex h-12 w-12 items-center justify-center rounded-full bg-glass backdrop-blur-md";
-  const restSlot = many ? current + 1 : 0;
+  const barStyle: React.CSSProperties = {
+    left: "50%",
+    transform: "translateX(-50%)",
+    width: "calc(100% - 1.5rem)",
+    maxWidth: "var(--container-column)",
+  };
 
   return (
     <dialog
       ref={dialogRef}
-      onClose={onClose}
+      onClose={handleClose}
       aria-label="Image viewer"
-      className="fixed inset-0 m-0 h-full max-h-none w-full max-w-none bg-transparent p-0 backdrop:bg-black/70 backdrop:backdrop-blur-2xl"
+      className="fixed inset-x-0 top-0 bottom-auto m-0 h-[100dvh] w-full max-w-none bg-transparent p-0 backdrop:backdrop-blur-2xl"
     >
-      {/* Visual clip zone — pointer-events-none so clicks reach the bars below */}
-      <div className="pointer-events-none absolute inset-0 overflow-hidden" style={{ paddingTop: "5.5rem", paddingBottom: "5.5rem" }}>
-        <div ref={trackRef} className="flex h-full will-change-transform">
-          {slides.map((im, slot) => (
-            <div key={slot} className="flex h-full w-screen shrink-0 items-center justify-center px-3">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={im.src}
-                alt={im.alt}
-                loading={Math.abs(slot - restSlot) <= 1 || slot === 0 || slot === slides.length - 1 ? "eager" : "lazy"}
-                draggable={false}
-                className="max-h-full w-full max-w-(--container-column) rounded-(--radius-card) object-contain"
-              />
-            </div>
-          ))}
-        </div>
-      </div>
+      {/* Dark layer (fades on dismiss). Blur lives on the dialog ::backdrop. */}
+      <div ref={overlayRef} className="absolute inset-0 bg-black/70" />
 
-      {/* Swipe capture zone — image area only, between both bars */}
+      {/* Image stage — also the dismiss-drag surface. */}
       <div
+        ref={stageRef}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        className="absolute inset-x-0 touch-none"
-        style={{ top: "5.5rem", bottom: "5.5rem" }}
-      />
-
-      {/* Top bar: caption left, close right */}
-      <div
-        className="fixed top-4 flex items-center justify-between"
-        style={{ left: "50%", transform: "translateX(-50%)", width: "calc(100% - 1.5rem)", maxWidth: "var(--container-column)" }}
+        // touch-action none: stop the browser handling vertical drags (Swiper's
+        // default `pan-y` is what lets iOS pull-to-refresh fire). Swiper still
+        // pages horizontally via JS; our handlers own the vertical dismiss.
+        style={{ position: "absolute", left: 0, right: 0, top: "5.5rem", bottom: "5.5rem", touchAction: "none" }}
       >
-        {caption ? <GlassPill className="px-5 py-3">{caption}</GlassPill> : <span />}
-        <button onClick={onClose} aria-label="Close" className={btn}>
-          <Cross />
-        </button>
+        <Swiper
+          modules={[Keyboard]}
+          keyboard={{ enabled: true }}
+          loop={many}
+          initialSlide={initial}
+          speed={SPEED}
+          className="lightbox-swiper"
+          style={{ position: "absolute", inset: 0 }}
+          onSwiper={(s) => {
+            swiperRef.current = s;
+          }}
+          onSlideChange={(s) => {
+            if (closing.current) return;
+            setCurrent(s.realIndex);
+            onIndexChange(s.realIndex);
+          }}
+        >
+          {images.map((im, i) => (
+            <SwiperSlide key={i} className="lightbox-slide px-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={im.src}
+                alt={im.alt}
+                draggable={false}
+                className="max-h-full w-full max-w-(--container-column) rounded-(--radius-card) object-contain"
+              />
+            </SwiperSlide>
+          ))}
+        </Swiper>
       </div>
 
-      {/* Bottom bar: counter left, arrows right */}
-      <div
-        className="fixed bottom-4 flex items-center justify-between"
-        style={{ left: "50%", transform: "translateX(-50%)", width: "calc(100% - 1.5rem)", maxWidth: "var(--container-column)" }}
-      >
-        {many ? <GlassPill className="px-4 py-3 tabular-nums">{current + 1} / {n}</GlassPill> : <span />}
-        {many && (
-          <div className="flex gap-2">
-            <button onClick={() => go(-1)} aria-label="Previous image" className={btn}><Chevron flip /></button>
-            <button onClick={() => go(1)} aria-label="Next image" className={btn}><Chevron /></button>
-          </div>
-        )}
+      {/* Chrome (bars) — fades with the dismiss drag; clicks pass through except on the bars. */}
+      <div ref={chromeRef} className="pointer-events-none absolute inset-0 z-10">
+        {/* Top bar: caption left, close right */}
+        <div className="pointer-events-auto absolute top-4 flex items-center justify-between" style={barStyle}>
+          {caption ? <GlassPill className="px-5 py-3">{caption}</GlassPill> : <span />}
+          <button onClick={handleClose} aria-label="Close" className={btn}>
+            <Cross />
+          </button>
+        </div>
+
+        {/* Bottom bar: counter left, arrows right */}
+        <div className="pointer-events-auto absolute bottom-4 flex items-center justify-between" style={barStyle}>
+          {many ? <GlassPill className="px-4 py-3 tabular-nums">{current + 1} / {n}</GlassPill> : <span />}
+          {many && (
+            <div className="flex gap-2">
+              <button onClick={() => swiperRef.current?.slidePrev()} aria-label="Previous image" className={btn}><Chevron flip /></button>
+              <button onClick={() => swiperRef.current?.slideNext()} aria-label="Next image" className={btn}><Chevron /></button>
+            </div>
+          )}
+        </div>
       </div>
     </dialog>
   );
