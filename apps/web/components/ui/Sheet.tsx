@@ -10,6 +10,10 @@ const DURATION_OUT = 220; // ms — sheet slide down
 const PAGE_SCALE     = 0.95;
 const PAGE_RADIUS    = "14px";
 const PAGE_TRANSLATE = "14px"; // tuck the top edge down, like newer iOS
+// Color behind the receding page. A touch darker than --color-canvas (#0C1013)
+// so the recede gap reads at the sheet edges, without the hard black strip that
+// pure #000 bleeds into the iOS bottom address-bar region.
+const PAGE_RECEDE_VOID = "#070A0C";
 
 const DISMISS_DISTANCE = 0.35;
 const DISMISS_VELOCITY = 0.4;
@@ -61,14 +65,19 @@ export function Sheet({
     html.style.height = `${window.innerHeight}px`;
     html.style.overflow = "hidden";
     html.style.overscrollBehavior = "none";
-    html.style.background = "#000";
+    // <html> now carries an explicit background, so it paints the viewport canvas
+    // — including the region iOS Safari renders behind its toolbars. Keep it just
+    // a touch darker than the canvas (NOT pure black): enough contrast for the
+    // recede gap to read at the sheet edges, but close enough to the page that it
+    // won't show as a hard strip beneath the bottom address bar.
+    html.style.background = PAGE_RECEDE_VOID;
     body.style.position = "fixed";
     body.style.top = `-${lockedScrollY.current}px`;
     body.style.insetInline = "0";
     body.style.width = "100%";
-    // Recede the page behind the sheet. The void revealed at the edges shows
-    // through to a dark backdrop on <html>; the <dialog> is in the top layer so
-    // it isn't affected by this transform.
+    // Recede the page behind the sheet. The gap revealed at the edges shows
+    // through to <html>, kept just below the canvas color above for a subtle
+    // depth cue; the <dialog> is in the top layer so it isn't affected here.
     body.style.transformOrigin = "50% 0";
     body.style.overflow = "hidden";
     body.style.transition = `transform ${DURATION_IN}ms ease, border-radius ${DURATION_IN}ms ease`;
@@ -135,6 +144,10 @@ export function Sheet({
       if (!dialog.open) {
         lockScroll();
         dialog.showModal();
+        // showModal() auto-focuses the first focusable element (the Close/drag
+        // handle), which paints the :focus-visible ring on open. Redirect focus
+        // to the non-interactive sheet container so no button shows a ring.
+        sheet.focus();
       }
 
       // Web Animations API starts immediately — no React re-render race.
@@ -278,7 +291,8 @@ export function Sheet({
 
       <div
         ref={sheetRef}
-        className="absolute inset-x-(--spacing-gutter) bottom-(--spacing-gutter) mx-auto flex max-h-[85svh] max-w-(--container-column) flex-col overflow-hidden rounded-(--radius-sheet) bg-surface"
+        tabIndex={-1}
+        className="absolute inset-x-(--spacing-gutter) bottom-(--spacing-gutter) mx-auto flex max-h-[85svh] max-w-(--container-column) flex-col overflow-hidden rounded-(--radius-sheet) bg-surface outline-none"
       >
         <div
           className="flex shrink-0 touch-none select-none justify-center pb-4 pt-3"
