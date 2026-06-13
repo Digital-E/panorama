@@ -53,19 +53,6 @@ export function Sheet({
   const snapTimeout   = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const drag = useRef({ active: false, startY: 0, lastY: 0, lastTime: 0, velocity: 0 });
 
-  // Page scroll-lock. On iOS, `overflow: hidden` doesn't stop the document from
-  // scrolling and showModal() jumps it to the top, so we pin the body with
-  // `position: fixed` at the current offset. The lock is applied right before
-  // showModal() and only released once the dialog has *fully* closed (after the
-  // out-animation) — releasing it when `open` flips would snap the page back
-  // while the sheet is still sliding away.
-  // Scroll-lock WITHOUT moving the page. We deliberately avoid `position: fixed`
-  // and `overflow: hidden` on <html>/<body>: making the document non-scrollable
-  // is exactly what makes iOS Safari collapse its (expanded, at scrollY 0) URL
-  // bar to fit the modal — the viewport resize you see as a "jump to top". So we
-  // leave the page exactly where it is and just swallow scroll gestures, which
-  // keeps the bar in whatever state it was. Gestures inside the sheet's own
-  // scroll area pass through (overscroll-behavior:contain stops them chaining).
   // Scroll-lock WITHOUT moving the page, plus the iOS "presenting" recede.
   // Two hard-won constraints shaped this:
   //  • Don't lock with `position: fixed`/`overflow: hidden` — making the page
