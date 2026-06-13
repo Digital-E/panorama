@@ -29,11 +29,10 @@ export function LinksCard({ data }: { data: Data }) {
 
 function ExternalIcon() {
   return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+    <svg width="13" height="13" viewBox="0 0 13 13" fill="none" aria-hidden>
       <path
-        d="M5.5 3H3.5A1.5 1.5 0 002 4.5v6A1.5 1.5 0 003.5 12h6A1.5 1.5 0 0011 10.5V8.5M8 2h4v4M12 2L6.5 7.5"
+        d="M8.46875 0.5H11.75V3.78125M11.0469 1.20312L7.53125 4.71875M6.125 1.4375H1.90625C1.53329 1.4375 1.1756 1.58566 0.911881 1.84938C0.648158 2.1131 0.5 2.47079 0.5 2.84375V10.3438C0.5 10.7167 0.648158 11.0744 0.911881 11.3381C1.1756 11.6018 1.53329 11.75 1.90625 11.75H9.40625C9.77921 11.75 10.1369 11.6018 10.4006 11.3381C10.6643 11.0744 10.8125 10.7167 10.8125 10.3438V6.125"
         stroke="currentColor"
-        strokeWidth="1.4"
         strokeLinecap="round"
         strokeLinejoin="round"
       />

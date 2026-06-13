@@ -3,8 +3,13 @@
 import { useEffect, useRef, type ReactNode } from "react";
 
 // Tweak these to adjust feel
-const DURATION_IN  = 500; // ms — sheet slide up
-const DURATION_OUT = 320; // ms — sheet slide down
+const DURATION_IN  = 320; // ms — sheet slide up
+const DURATION_OUT = 220; // ms — sheet slide down
+
+// iOS-style "presenting" effect — the page behind recedes while the sheet is up.
+const PAGE_SCALE     = 0.95;
+const PAGE_RADIUS    = "14px";
+const PAGE_TRANSLATE = "14px"; // tuck the top edge down, like newer iOS
 
 const DISMISS_DISTANCE = 0.35;
 const DISMISS_VELOCITY = 0.4;
@@ -37,27 +42,68 @@ export function Sheet({
   const snapTimeout   = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const drag = useRef({ active: false, startY: 0, lastY: 0, lastTime: 0, velocity: 0 });
 
-  // Lock the page behind the sheet. On iOS, `overflow: hidden` doesn't stop the
-  // document from scrolling, and showModal() jumps it to the top. Pinning the
-  // body with `position: fixed` at the current offset freezes it in place; we
-  // restore the scroll position on close. Declared before the showModal effect
-  // so the lock is in place by the time the dialog opens.
-  useEffect(() => {
-    if (!open) return;
-    const scrollY = window.scrollY;
+  // Page scroll-lock. On iOS, `overflow: hidden` doesn't stop the document from
+  // scrolling and showModal() jumps it to the top, so we pin the body with
+  // `position: fixed` at the current offset. The lock is applied right before
+  // showModal() and only released once the dialog has *fully* closed (after the
+  // out-animation) — releasing it when `open` flips would snap the page back
+  // while the sheet is still sliding away.
+  const lockedScrollY = useRef(0);
+
+  const lockScroll = () => {
+    lockedScrollY.current = window.scrollY;
     const body = document.body;
     body.style.position = "fixed";
-    body.style.top = `-${scrollY}px`;
+    body.style.top = `-${lockedScrollY.current}px`;
     body.style.insetInline = "0";
     body.style.width = "100%";
-    return () => {
-      body.style.position = "";
-      body.style.top = "";
-      body.style.insetInline = "";
-      body.style.width = "";
-      window.scrollTo(0, scrollY);
-    };
-  }, [open]);
+    // Recede the page behind the sheet. The void revealed at the edges shows
+    // through to a dark backdrop on <html>; the <dialog> is in the top layer so
+    // it isn't affected by this transform.
+    body.style.transformOrigin = "50% 0";
+    body.style.overflow = "hidden";
+    body.style.transition = `transform ${DURATION_IN}ms ease, border-radius ${DURATION_IN}ms ease`;
+    body.style.transform = `translateY(${PAGE_TRANSLATE}) scale(${PAGE_SCALE})`;
+    body.style.borderRadius = PAGE_RADIUS;
+    document.documentElement.style.background = "#000";
+  };
+
+  // Scale the page back up. Called when the close starts so it animates in sync
+  // with the sheet sliding away (the scroll-lock itself is released later, once
+  // the dialog has fully closed, to avoid a scroll jump).
+  const scaleUp = () => {
+    const body = document.body;
+    if (body.style.position !== "fixed") return;
+    body.style.transition = `transform ${DURATION_OUT}ms ease-in, border-radius ${DURATION_OUT}ms ease-in`;
+    body.style.transform = "";
+    body.style.borderRadius = "";
+  };
+
+  const unlockScroll = () => {
+    const body = document.body;
+    if (body.style.position !== "fixed") return; // already unlocked
+    // The page sat pinned at scroll 0 while fixed, so restoring the offset is a
+    // jump from the top — and `html { scroll-behavior: smooth }` would animate
+    // it (the visible "yank"). Force the restore to be instant.
+    const html = document.documentElement;
+    const prevBehavior = html.style.scrollBehavior;
+    html.style.scrollBehavior = "auto";
+    body.style.position = "";
+    body.style.top = "";
+    body.style.insetInline = "";
+    body.style.width = "";
+    body.style.transform = "";
+    body.style.transformOrigin = "";
+    body.style.borderRadius = "";
+    body.style.overflow = "";
+    body.style.transition = "";
+    html.style.background = "";
+    window.scrollTo(0, lockedScrollY.current);
+    html.style.scrollBehavior = prevBehavior;
+  };
+
+  // Safety net: never leave the body locked if the sheet unmounts while open.
+  useEffect(() => unlockScroll, []);
 
   useEffect(() => {
     const dialog  = dialogRef.current;
@@ -74,7 +120,10 @@ export function Sheet({
       sheet.style.transition = "";
       if (overlay) { overlay.style.opacity = ""; overlay.style.transition = ""; }
 
-      if (!dialog.open) dialog.showModal();
+      if (!dialog.open) {
+        lockScroll();
+        dialog.showModal();
+      }
 
       // Web Animations API starts immediately — no React re-render race.
       sheetAnim.current = sheet.animate(KEYFRAMES_IN, {
@@ -90,9 +139,10 @@ export function Sheet({
         });
       }
     } else if (dialog.open) {
+      scaleUp(); // recede → restore, in sync with the sheet leaving
       if (dragDismissed.current) {
         dragDismissed.current = false;
-        const id = setTimeout(() => { if (dialog.open) dialog.close(); }, DURATION_OUT + 20);
+        const id = setTimeout(() => { if (dialog.open) dialog.close(); unlockScroll(); }, DURATION_OUT + 20);
         return () => clearTimeout(id);
       }
 
@@ -122,6 +172,7 @@ export function Sheet({
         sheetAnim.current = undefined;
         overlayAnim.current = undefined;
         if (dialog.open) dialog.close();
+        unlockScroll();
       };
     }
   }, [open]);
