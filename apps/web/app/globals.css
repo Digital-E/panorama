@@ -78,6 +78,16 @@ dialog {
   display: none;
 }
 
+/*
+ * Swipe deck cards — transition lives here (not inline) so the drag handler
+ * can imperatively set `transition: none` without React resetting it on the
+ * next render. When a card promotes forward, its top/left/right shift and
+ * these transitions animate the rise.
+ */
+.swipe-card {
+  transition: top 320ms ease, left 320ms ease, right 320ms ease, transform 320ms ease;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -88,4 +98,32 @@ dialog {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/*
+ * Swiper "gallery-item-slider" pagination — bottom-left placement copied
+ * verbatim from the reference site (intmagic.com).
+ */
+.ref-slider .swiper-pagination-bullets.swiper-pagination-horizontal {
+  bottom: 1.25rem;
+  left: 50px !important;
+  right: auto;
+  width: auto;
+  text-align: left;
+  transform: none;
+}
+
+/*
+ * dynamicBullets makes Swiper write an inline `left` offset on every bullet to
+ * keep the active one centred in its window — that offset drags the row off the
+ * left edge. Zero it out so the bullets stay anchored at the 50px padding.
+ */
+.ref-slider .swiper-pagination-bullets-dynamic .swiper-pagination-bullet {
+  left: 0 !important;
+}
+
+/* Slides clip to the same corners as the container card. */
+.ref-slider .swiper-slide {
+  border-radius: var(--radius-card);
+  overflow: hidden;
 }

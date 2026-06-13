@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ImageAsset } from "@portfolio/schema";
 import { GlassPill } from "@/components/ui/GlassPill";
 
@@ -19,110 +19,99 @@ export function Lightbox({
   onIndexChange: (i: number) => void;
   onClose: () => void;
 }) {
-  const dialogRef  = useRef<HTMLDialogElement>(null);
-  const n    = images.length;
+  const dialogRef = useRef<HTMLDialogElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const drag = useRef({ active: false, startX: 0, lastX: 0, moved: false });
+  const animating = useRef(false);
+  const n = images.length;
   const many = n > 1;
 
-  // Current index tracked imperatively so animation closures are never stale.
-  const idxRef      = useRef(index);
-  const animating   = useRef(false);
-  const frontIsA    = useRef(true); // which pane is currently visible
+  // The real image on screen (drives the counter). Seeded once from the prop;
+  // afterwards the viewer owns its position so it can loop past the ends.
+  const [current, setCurrent] = useState(index);
 
-  // Two absolutely-positioned panes. One is always "front" (on screen),
-  // one is "back" (hidden, used as staging area for the next image).
-  const paneA = useRef<HTMLDivElement>(null);
-  const paneB = useRef<HTMLDivElement>(null);
-  const imgA  = useRef<HTMLImageElement>(null);
-  const imgB  = useRef<HTMLImageElement>(null);
-
-  const drag = useRef({ active: false, startX: 0, lastX: 0, staged: false, dir: 0 as 1 | -1 | 0 });
-
-  function getFront() {
-    return frontIsA.current
-      ? { pane: paneA.current!, img: imgA.current! }
-      : { pane: paneB.current!, img: imgB.current! };
-  }
-  function getBack() {
-    return frontIsA.current
-      ? { pane: paneB.current!, img: imgB.current! }
-      : { pane: paneA.current!, img: imgA.current! };
-  }
+  // To loop seamlessly the track carries a clone of the last image before the
+  // first and a clone of the first after the last:
+  //   [ lastⁿ⁻¹ | 0 | 1 | … | n-1 | 0¹ ]
+  // Real image i therefore lives at slot i+1. Crossing onto a clone animates
+  // normally, then we snap (no transition) to the matching real slot — same
+  // pixels, so the jump is invisible.
+  const slides = many ? [images[n - 1], ...images, images[0]] : images;
+  const slotRef = useRef(many ? index + 1 : 0);
 
   useEffect(() => {
     dialogRef.current?.showModal();
-    // Prime pane A with the opening image; hide pane B.
-    const ia = imgA.current!;
-    ia.src = images[index].src;
-    ia.alt = images[index].alt;
-    paneA.current!.style.zIndex     = "1";
-    paneB.current!.style.zIndex     = "0";
-    paneB.current!.style.visibility = "hidden";
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Commit the opening position before the first paint — no transition, so the
+  // viewer never flashes slot 0.
+  useLayoutEffect(() => {
+    const t = trackRef.current;
+    if (!t) return;
+    t.style.transition = "none";
+    t.style.transform = `translate3d(${-slotRef.current * 100}vw, 0, 0)`;
   }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight") go(1);
-      if (e.key === "ArrowLeft")  go(-1);
+      if (e.key === "ArrowLeft") go(-1);
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Load the next image into the back pane and position it off-screen.
-  // Returns the new index.
-  function stageBack(dir: 1 | -1): number {
-    const newIdx = (idxRef.current + dir + n) % n;
-    const b = getBack();
-    b.img.src = images[newIdx].src;
-    b.img.alt = images[newIdx].alt;
-    b.pane.style.transition  = "none";
-    b.pane.style.transform   = dir === 1 ? "translateX(100%)" : "translateX(-100%)";
-    b.pane.style.visibility  = "visible";
-    b.pane.style.zIndex      = "0";
-    getFront().pane.style.zIndex = "1";
-    void b.pane.offsetWidth; // commit off-screen position before transition
-    return newIdx;
-  }
-
-  function finishSwap(newIdx: number) {
-    const f = getFront();
-    const b = getBack();
-    f.pane.style.visibility = "hidden";
-    f.pane.style.transition = "none";
-    f.pane.style.transform  = "translateX(0)";
-    frontIsA.current = !frontIsA.current;
-    // New front gets higher z-index.
-    getFront().pane.style.zIndex = "1";
-    getBack().pane.style.zIndex  = "0";
-    idxRef.current  = newIdx;
-    animating.current = false;
-    onIndexChange(newIdx);
-  }
+  });
 
   function go(dir: 1 | -1) {
-    if (animating.current || !many) return;
+    const t = trackRef.current;
+    if (!t || !many || animating.current) return;
     animating.current = true;
-    const newIdx = stageBack(dir);
-    const f = getFront();
-    const b = getBack();
 
-    f.pane.style.transition = `transform ${DURATION}ms ease`;
-    f.pane.style.transform  = dir === 1 ? "translateX(-100%)" : "translateX(100%)";
-    b.pane.style.transition = `transform ${DURATION}ms ease`;
-    b.pane.style.transform  = "translateX(0)";
+    const targetSlot = slotRef.current + dir;
+    const newReal = (current + dir + n) % n;
 
-    b.pane.addEventListener("transitionend", function done() {
-      b.pane.removeEventListener("transitionend", done);
-      finishSwap(newIdx);
-    }, { once: true });
+    t.style.transition = `transform ${DURATION}ms ease`;
+    t.style.transform = `translate3d(${-targetSlot * 100}vw, 0, 0)`;
+
+    // transitionend won't fire if the position didn't actually change (e.g. a
+    // drag released exactly on the target), so a timeout backstops it.
+    let finished = false;
+    const done = () => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(fallback);
+      t.removeEventListener("transitionend", done);
+      // If we landed on a clone, snap to the equivalent real slot instantly.
+      let normalized = targetSlot;
+      if (targetSlot === n + 1) normalized = 1;
+      else if (targetSlot === 0) normalized = n;
+      if (normalized !== targetSlot) {
+        t.style.transition = "none";
+        t.style.transform = `translate3d(${-normalized * 100}vw, 0, 0)`;
+        void t.offsetWidth;
+      }
+      slotRef.current = normalized;
+      animating.current = false;
+    };
+    const fallback = setTimeout(done, DURATION + 60);
+    t.addEventListener("transitionend", done);
+
+    setCurrent(newReal);
+    onIndexChange(newReal);
+  }
+
+  // Animate back to the resting slot (drag released below threshold).
+  function settle() {
+    const t = trackRef.current;
+    if (!t) return;
+    t.style.transition = `transform ${DURATION}ms ease`;
+    t.style.transform = `translate3d(${-slotRef.current * 100}vw, 0, 0)`;
   }
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (!many || animating.current) return;
-    drag.current = { active: true, startX: e.clientX, lastX: e.clientX, staged: false, dir: 0 };
-    getFront().pane.style.transition = "none";
+    const t = trackRef.current;
+    if (t) t.style.transition = "none";
+    drag.current = { active: true, startX: e.clientX, lastX: e.clientX, moved: false };
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
   };
 
@@ -130,19 +119,14 @@ export function Lightbox({
     const d = drag.current;
     if (!d.active) return;
     d.lastX = e.clientX;
-    const dx = e.clientX - d.startX;
-
-    if (!d.staged && Math.abs(dx) > 8) {
-      d.dir    = dx < 0 ? 1 : -1;
-      d.staged = true;
-      stageBack(d.dir);
-    }
-    if (!d.staged) return;
-
     const vw = window.innerWidth;
-    getFront().pane.style.transform = `translateX(${dx}px)`;
-    getBack().pane.style.transition = "none";
-    getBack().pane.style.transform  = `translateX(${d.dir === 1 ? vw + dx : -vw + dx}px)`;
+    let dx = e.clientX - d.startX;
+    if (Math.abs(dx) > 6) d.moved = true;
+    // Page-bounded: one gesture reveals at most the neighbouring clone/slide.
+    dx = Math.max(-vw, Math.min(vw, dx));
+    if (trackRef.current) {
+      trackRef.current.style.transform = `translate3d(calc(${-slotRef.current * 100}vw + ${dx}px), 0, 0)`;
+    }
   };
 
   const onPointerUp = () => {
@@ -150,31 +134,14 @@ export function Lightbox({
     if (!d.active) return;
     d.active = false;
     const dx = d.lastX - d.startX;
-
-    if (d.staged && Math.abs(dx) > 50) {
-      animating.current = true;
-      const newIdx = (idxRef.current + d.dir + n) % n;
-      const f = getFront();
-      const b = getBack();
-      f.pane.style.transition = `transform ${DURATION}ms ease`;
-      f.pane.style.transform  = d.dir === 1 ? "translateX(-100%)" : "translateX(100%)";
-      b.pane.style.transition = `transform ${DURATION}ms ease`;
-      b.pane.style.transform  = "translateX(0)";
-      b.pane.addEventListener("transitionend", function done() {
-        b.pane.removeEventListener("transitionend", done);
-        finishSwap(newIdx);
-      }, { once: true });
-    } else {
-      const f = getFront();
-      f.pane.style.transition = `transform ${DURATION}ms ease`;
-      f.pane.style.transform  = "translateX(0)";
-      if (d.staged) {
-        getBack().pane.style.visibility = "hidden";
-      }
-    }
+    const threshold = window.innerWidth * 0.2;
+    if (dx <= -threshold) go(1);
+    else if (dx >= threshold) go(-1);
+    else settle();
   };
 
   const btn = "flex h-12 w-12 items-center justify-center rounded-full bg-glass backdrop-blur-md";
+  const restSlot = many ? current + 1 : 0;
 
   return (
     <dialog
@@ -185,13 +152,19 @@ export function Lightbox({
     >
       {/* Visual clip zone — pointer-events-none so clicks reach the bars below */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden" style={{ paddingTop: "5.5rem", paddingBottom: "5.5rem" }}>
-        <div ref={paneA} className="absolute inset-0 flex items-center justify-center px-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img ref={imgA} alt="" className="max-h-full w-full max-w-(--container-column) rounded-(--radius-card) object-contain" />
-        </div>
-        <div ref={paneB} className="absolute inset-0 flex items-center justify-center px-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img ref={imgB} alt="" className="max-h-full w-full max-w-(--container-column) rounded-(--radius-card) object-contain" />
+        <div ref={trackRef} className="flex h-full will-change-transform">
+          {slides.map((im, slot) => (
+            <div key={slot} className="flex h-full w-screen shrink-0 items-center justify-center px-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={im.src}
+                alt={im.alt}
+                loading={Math.abs(slot - restSlot) <= 1 || slot === 0 || slot === slides.length - 1 ? "eager" : "lazy"}
+                draggable={false}
+                className="max-h-full w-full max-w-(--container-column) rounded-(--radius-card) object-contain"
+              />
+            </div>
+          ))}
         </div>
       </div>
 
@@ -210,9 +183,7 @@ export function Lightbox({
         className="fixed top-4 flex items-center justify-between"
         style={{ left: "50%", transform: "translateX(-50%)", width: "calc(100% - 1.5rem)", maxWidth: "var(--container-column)" }}
       >
-        {caption
-          ? <GlassPill className="px-5 py-3">{caption}</GlassPill>
-          : <span />}
+        {caption ? <GlassPill className="px-5 py-3">{caption}</GlassPill> : <span />}
         <button onClick={onClose} aria-label="Close" className={btn}>
           <Cross />
         </button>
@@ -223,13 +194,11 @@ export function Lightbox({
         className="fixed bottom-4 flex items-center justify-between"
         style={{ left: "50%", transform: "translateX(-50%)", width: "calc(100% - 1.5rem)", maxWidth: "var(--container-column)" }}
       >
-        {many
-          ? <GlassPill className="px-4 py-3 tabular-nums">{index + 1} / {n}</GlassPill>
-          : <span />}
+        {many ? <GlassPill className="px-4 py-3 tabular-nums">{current + 1} / {n}</GlassPill> : <span />}
         {many && (
           <div className="flex gap-2">
             <button onClick={() => go(-1)} aria-label="Previous image" className={btn}><Chevron flip /></button>
-            <button onClick={() => go(1)}  aria-label="Next image"      className={btn}><Chevron /></button>
+            <button onClick={() => go(1)} aria-label="Next image" className={btn}><Chevron /></button>
           </div>
         )}
       </div>

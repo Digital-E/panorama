@@ -37,6 +37,28 @@ export function Sheet({
   const snapTimeout   = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const drag = useRef({ active: false, startY: 0, lastY: 0, lastTime: 0, velocity: 0 });
 
+  // Lock the page behind the sheet. On iOS, `overflow: hidden` doesn't stop the
+  // document from scrolling, and showModal() jumps it to the top. Pinning the
+  // body with `position: fixed` at the current offset freezes it in place; we
+  // restore the scroll position on close. Declared before the showModal effect
+  // so the lock is in place by the time the dialog opens.
+  useEffect(() => {
+    if (!open) return;
+    const scrollY = window.scrollY;
+    const body = document.body;
+    body.style.position = "fixed";
+    body.style.top = `-${scrollY}px`;
+    body.style.insetInline = "0";
+    body.style.width = "100%";
+    return () => {
+      body.style.position = "";
+      body.style.top = "";
+      body.style.insetInline = "";
+      body.style.width = "";
+      window.scrollTo(0, scrollY);
+    };
+  }, [open]);
+
   useEffect(() => {
     const dialog  = dialogRef.current;
     const sheet   = sheetRef.current;
@@ -102,13 +124,6 @@ export function Sheet({
         if (dialog.open) dialog.close();
       };
     }
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) return;
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => { document.body.style.overflow = prev; };
   }, [open]);
 
   const onDragStart = (e: React.PointerEvent) => {
