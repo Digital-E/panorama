@@ -40,7 +40,7 @@ export function SwipeCard({ data }: { data: Data }) {
   const topRef = useRef<HTMLDivElement | null>(null);
   // [depth-1, depth-2, ghost(depth-3)]
   const behindRefs = useRef<Array<HTMLDivElement | null>>([null, null, null]);
-  const drag = useRef({ active: false, startX: 0, startY: 0, lastX: 0, lastY: 0 });
+  const drag = useRef({ active: false, decided: false, horizontal: false, startX: 0, startY: 0, lastX: 0, lastY: 0 });
   const animating = useRef(false);
   const snapTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const n = data.images.length;
@@ -87,20 +87,40 @@ export function SwipeCard({ data }: { data: Data }) {
   function onPointerDown(e: React.PointerEvent) {
     if (animating.current || n < 2) return;
     clearTimeout(snapTimeout.current);
-    drag.current = { active: true, startX: e.clientX, startY: e.clientY, lastX: e.clientX, lastY: e.clientY };
-    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
-    if (topRef.current) topRef.current.style.transition = "none";
-    for (const el of behindRefs.current) {
-      if (el) el.style.transition = "none";
-    }
+    // Don't capture yet — wait for direction decision in onPointerMove so that
+    // vertical scrolls are never hijacked.
+    drag.current = { active: true, decided: false, horizontal: false, startX: e.clientX, startY: e.clientY, lastX: e.clientX, lastY: e.clientY };
   }
 
   function onPointerMove(e: React.PointerEvent) {
-    if (!drag.current.active) return;
-    drag.current.lastX = e.clientX;
-    drag.current.lastY = e.clientY;
-    const dx = e.clientX - drag.current.startX;
-    const dy = e.clientY - drag.current.startY;
+    const d = drag.current;
+    if (!d.active) return;
+
+    const dx = e.clientX - d.startX;
+    const dy = e.clientY - d.startY;
+
+    // Wait until the finger has moved enough to know intent.
+    if (!d.decided) {
+      if (Math.abs(dx) < 6 && Math.abs(dy) < 6) return;
+      d.decided = true;
+      d.horizontal = Math.abs(dx) >= Math.abs(dy);
+      if (d.horizontal) {
+        // Lock pointer so swipe isn't lost if the finger leaves the element.
+        (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+        if (topRef.current) topRef.current.style.transition = "none";
+        for (const el of behindRefs.current) {
+          if (el) el.style.transition = "none";
+        }
+      } else {
+        // Vertical — hand back to the browser for page scroll.
+        d.active = false;
+        return;
+      }
+    }
+
+    if (!d.horizontal) return;
+    d.lastX = e.clientX;
+    d.lastY = e.clientY;
     if (topRef.current) {
       topRef.current.style.transform = `translate(${dx}px, ${dy}px) rotate(${dx * 0.06}deg)`;
     }
@@ -110,6 +130,7 @@ export function SwipeCard({ data }: { data: Data }) {
   function onPointerUp() {
     if (!drag.current.active) return;
     drag.current.active = false;
+    if (!drag.current.horizontal) return;
     const dx = drag.current.lastX - drag.current.startX;
     const dy = drag.current.lastY - drag.current.startY;
     const top = topRef.current;
@@ -170,7 +191,7 @@ export function SwipeCard({ data }: { data: Data }) {
                     else behindRefs.current[depth - 1] = el;
                   }}
                   className={`absolute inset-0 overflow-hidden bg-(--color-surface) ${
-                    isTop ? "touch-none cursor-grab active:cursor-grabbing" : ""
+                    isTop ? "touch-pan-y cursor-grab active:cursor-grabbing" : ""
                   }`}
                   style={{
                     borderRadius: RADIUS,
