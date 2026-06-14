@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { RESERVED_USERNAMES } from "@portfolio/schema";
 import { getProfile, listPublishedUsernames } from "@/lib/data";
+import { Navbar } from "@/components/home/Navbar";
 import { HeroCard } from "@/components/home/HeroCard";
 import { SectionsNav } from "@/components/home/SectionsNav";
 import { ProjectCard } from "@/components/home/ProjectCard";
@@ -42,17 +43,24 @@ export default async function ProfilePage({ params }: Props) {
   const profile = await getProfile(username);
   if (!profile) notFound();
 
-  // The fixed template: hero → biography/nav → projects → footer.
   return (
-    <main className="mx-auto flex w-full max-w-(--container-column) flex-col gap-(--spacing-gutter) p-(--spacing-gutter)">
-      <HeroCard profile={profile} />
-      <SectionsNav profile={profile} />
-      <div id="work" className="flex scroll-mt-3 flex-col gap-(--spacing-gutter)">
-        {profile.projects.map((project) => (
-          <ProjectCard key={project.slug} username={profile.username} project={project} />
-        ))}
-      </div>
-      <FooterCard profile={profile} />
-    </main>
+    <>
+      <Navbar profile={profile} />
+      <main className="flex flex-col gap-(--spacing-gutter) p-(--spacing-gutter)">
+        <div className="flex flex-col gap-(--spacing-gutter) md:hidden">
+          <HeroCard profile={profile} />
+          <SectionsNav profile={profile} />
+        </div>
+        <div
+          id="work"
+          className="scroll-mt-3 columns-1 gap-(--spacing-gutter) md:columns-2 lg:columns-3"
+        >
+          {profile.projects.map((project) => (
+            <ProjectCard key={project.slug} username={profile.username} project={project} />
+          ))}
+        </div>
+        <FooterCard profile={profile} />
+      </main>
+    </>
   );
 }

@@ -135,6 +135,21 @@ export const demoProfile: Profile = {
       ],
     },
     {
+      slug: "summer-reverie",
+      title: "Summer Reverie",
+      cover: { src: "/project-4.jpg", width: 1440, height: 1800, alt: "Model reclining on a rocky beach at dusk" },
+      blocks: [
+        {
+          id: "p4b1",
+          type: "story",
+          data: {
+            heading: "The Story",
+            text: "Shot at golden hour on a rocky coastline — stillness, citrus, and the particular blue of late summer light.",
+          },
+        },
+      ],
+    },
+    {
       slug: "discovering-bliss",
       title: "Discovering Bliss",
       cover: { src: "/project-3.jpg", width: 1600, height: 1300, alt: "Studio with exercise ball" },
@@ -145,6 +160,66 @@ export const demoProfile: Profile = {
           data: {
             heading: "The Story",
             text: "Wellness, examined sideways. Shot in a single afternoon in an empty office block.",
+          },
+        },
+      ],
+    },
+    {
+      slug: "shore-light",
+      title: "Shore Light",
+      cover: { src: "/project-5.jpg", width: 1440, height: 1800, alt: "Model with paddle racket against sparkling water" },
+      blocks: [
+        {
+          id: "p5b1",
+          type: "story",
+          data: {
+            heading: "The Story",
+            text: "Light as subject — the sun hitting the sea surface, the body caught between motion and stillness.",
+          },
+        },
+      ],
+    },
+    {
+      slug: "parallel",
+      title: "Parallel",
+      cover: { src: "/project-6.png", width: 1714, height: 1368, alt: "Two models on grass" },
+      blocks: [
+        {
+          id: "p6b1",
+          type: "story",
+          data: {
+            heading: "The Story",
+            text: "A study in doubles — two figures, one frame, the quiet tension of proximity.",
+          },
+        },
+      ],
+    },
+    {
+      slug: "sediment",
+      title: "Sediment",
+      cover: { src: "/project-7.jpg", width: 1080, height: 1350, alt: "Model in grey sweater on leather sofa" },
+      blocks: [
+        {
+          id: "p7b1",
+          type: "story",
+          data: {
+            heading: "The Story",
+            text: "Interior light, interior mood. Shot in a single room with no additional lighting.",
+          },
+        },
+      ],
+    },
+    {
+      slug: "elevation",
+      title: "Elevation",
+      cover: { src: "/project-8.jpg", width: 1080, height: 1350, alt: "Model on stacked chairs on a misty beach" },
+      blocks: [
+        {
+          id: "p8b1",
+          type: "story",
+          data: {
+            heading: "The Story",
+            text: "Height as metaphor. An object placed wrong, a figure placed right, and the horizon doing everything else.",
           },
         },
       ],

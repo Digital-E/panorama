@@ -28,6 +28,7 @@
   /* Layout */
   --spacing-gutter: 12px;     /* outer page gutter */
   --container-column: 600px;  /* ⚠ desktop guess — mobile frames only so far */
+  --container-desktop: 1200px; /* 2-column desktop layout */
 }
 
 :root {
