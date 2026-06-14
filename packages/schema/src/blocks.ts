@@ -47,14 +47,23 @@ export const StoryBlockSchema = z.object({
   }),
 });
 
-/** Image carousel with page dots and an optional caption pill ("Playa del Carmen 2026"). */
-export const MediaBlockSchema = z.object({
+const mediaData = z.object({
+  images: z.array(ImageAssetSchema).min(1).max(12),
+  caption: z.string().max(60).optional(),
+});
+
+/** Swipeable card deck. */
+export const MediaSwipeBlockSchema = z.object({
   ...blockBase,
-  type: z.literal("media"),
-  data: z.object({
-    images: z.array(ImageAssetSchema).min(1).max(12),
-    caption: z.string().max(60).optional(),
-  }),
+  type: z.literal("media-swipe"),
+  data: mediaData,
+});
+
+/** Swiper creative-effect carousel with pagination. */
+export const MediaCarouselBlockSchema = z.object({
+  ...blockBase,
+  type: z.literal("media-carousel"),
+  data: mediaData,
 });
 
 /** Large centred pull quote. Quotation marks are added by the renderer. */
@@ -86,12 +95,21 @@ export const VideoBlockSchema = z.object({
   }),
 });
 
+/** Single full-width photo. */
+export const PhotoBlockSchema = z.object({
+  ...blockBase,
+  type: z.literal("photo"),
+  data: ImageAssetSchema,
+});
+
 export const ProjectBlockSchema = z.discriminatedUnion("type", [
   StoryBlockSchema,
-  MediaBlockSchema,
+  MediaSwipeBlockSchema,
+  MediaCarouselBlockSchema,
   QuoteBlockSchema,
   LinksBlockSchema,
   VideoBlockSchema,
+  PhotoBlockSchema,
 ]);
 export type ProjectBlock = z.infer<typeof ProjectBlockSchema>;
 export type ProjectBlockType = ProjectBlock["type"];

@@ -4,13 +4,6 @@ import type { Profile } from "@portfolio/schema";
  * Demo fixture mirroring the Figma frames (Erica Bonifacio, Art
  * Director). Unsplash stand-ins until image storage exists.
  */
-const img = (id: string, w: number, h: number, alt: string) => ({
-  src: `https://images.unsplash.com/photo-${id}?w=${w}&q=80`,
-  width: w,
-  height: h,
-  alt,
-});
-
 export const demoProfile: Profile = {
   username: "erica",
   displayName: "Erica Bonifacio",
@@ -47,7 +40,23 @@ export const demoProfile: Profile = {
         },
         {
           id: "p1b2",
-          type: "media",
+          type: "media-swipe",
+          data: {
+            images: [
+              { src: "/swipe-1.jpg", width: 1224, height: 816, alt: "Two models on grass" },
+              { src: "/swipe-2.png", width: 960, height: 1200, alt: "Model on stacked chair at beach" },
+              { src: "/swipe-3.jpg", width: 960, height: 1200, alt: "Model in grey sweater on leather chair" },
+            ],
+          },
+        },
+        {
+          id: "p1b3",
+          type: "quote",
+          data: { text: "No great mind has ever existed without a touch of madness." },
+        },
+        {
+          id: "p1b2c",
+          type: "media-carousel",
           data: {
             caption: "Playa del Carmen 2026",
             images: [
@@ -56,11 +65,6 @@ export const demoProfile: Profile = {
               { src: "/project-3.jpg", width: 1600, height: 1300, alt: "Studio with exercise ball" },
             ],
           },
-        },
-        {
-          id: "p1b3",
-          type: "quote",
-          data: { text: "No great mind has ever existed without a touch of madness." },
         },
         {
           id: "p1b4",
@@ -72,6 +76,16 @@ export const demoProfile: Profile = {
         },
         {
           id: "p1b5",
+          type: "photo",
+          data: { src: "/photo-beach-1.jpg", width: 960, height: 1200, alt: "Model on beach with lemon" },
+        },
+        {
+          id: "p1b6",
+          type: "photo",
+          data: { src: "/photo-beach-2.jpg", width: 960, height: 1200, alt: "Model on rocks with paddle" },
+        },
+        {
+          id: "p1b7",
           type: "links",
           data: {
             heading: "Links",
@@ -99,7 +113,17 @@ export const demoProfile: Profile = {
         },
         {
           id: "p2b2",
-          type: "media",
+          type: "media-swipe",
+          data: {
+            images: [
+              { src: "/project-2.jpg", width: 1600, height: 1200, alt: "Sea, summer campaign" },
+              { src: "/project-3.jpg", width: 1600, height: 1300, alt: "Studio with exercise ball" },
+            ],
+          },
+        },
+        {
+          id: "p2b2c",
+          type: "media-carousel",
           data: {
             caption: "Federica 2025",
             images: [

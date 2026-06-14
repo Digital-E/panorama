@@ -117,15 +117,6 @@ dialog {
   display: none;
 }
 
-/*
- * Swipe deck cards — transition lives here (not inline) so the drag handler
- * can imperatively set `transition: none` without React resetting it on the
- * next render. When a card promotes forward, its top/left/right shift and
- * these transitions animate the rise.
- */
-.swipe-card {
-  transition: top 320ms ease, left 320ms ease, right 320ms ease, transform 320ms ease;
-}
 
 @media (prefers-reduced-motion: reduce) {
   html {

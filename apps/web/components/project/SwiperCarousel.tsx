@@ -6,7 +6,7 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import { EffectCreative, Pagination } from "swiper/modules";
 import type { Swiper as SwiperClass } from "swiper";
 import type { z } from "zod";
-import type { MediaBlockSchema } from "@portfolio/schema";
+import type { MediaCarouselBlockSchema } from "@portfolio/schema";
 import { Card } from "@/components/ui/Card";
 import { GlassPill } from "@/components/ui/GlassPill";
 
@@ -14,7 +14,7 @@ import "swiper/css";
 import "swiper/css/effect-creative";
 import "swiper/css/pagination";
 
-type Data = z.infer<typeof MediaBlockSchema>["data"];
+type Data = z.infer<typeof MediaCarouselBlockSchema>["data"];
 
 // Swiper pagination variables, copied verbatim from the reference's dark theme.
 const PAGINATION_VARS = {
