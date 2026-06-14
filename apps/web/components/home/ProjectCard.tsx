@@ -1,7 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import type { Project } from "@portfolio/schema";
 import { Card } from "@/components/ui/Card";
+import { FadeImage } from "@/components/ui/FadeImage";
 import { GlassPill } from "@/components/ui/GlassPill";
 
 /** Cover image card with a floating glass title bar, links to the project page. */
@@ -15,7 +15,7 @@ export function ProjectCard({
   return (
     <Link href={`/${username}/${project.slug}`} className="group mb-(--spacing-gutter) block break-inside-avoid">
       <Card className="relative">
-        <Image
+        <FadeImage
           src={project.cover.src}
           alt={project.cover.alt}
           width={project.cover.width}

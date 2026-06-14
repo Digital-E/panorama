@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { FadeImage } from "@/components/ui/FadeImage";
 import type { Profile } from "@portfolio/schema";
 import { Card } from "@/components/ui/Card";
 
@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/Card";
 export function HeroCard({ profile }: { profile: Profile }) {
   return (
     <Card className="relative aspect-[16/15]">
-      <Image
+      <FadeImage
         src={profile.hero.src}
         alt={profile.hero.alt}
         fill
