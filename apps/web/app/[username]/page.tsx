@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { RESERVED_USERNAMES } from "@portfolio/schema";
 import { getProfile, listPublishedUsernames } from "@/lib/data";
-import { Navbar } from "@/components/home/Navbar";
+import { HomeMenu } from "@/components/home/HomeMenu";
 import { HeroCard } from "@/components/home/HeroCard";
 import { SectionsNav } from "@/components/home/SectionsNav";
 import { ProjectCard } from "@/components/home/ProjectCard";
@@ -45,7 +45,7 @@ export default async function ProfilePage({ params }: Props) {
 
   return (
     <>
-      <Navbar profile={profile} />
+      <HomeMenu profile={profile} />
       <main className="flex flex-col gap-(--spacing-gutter) p-(--spacing-gutter)">
         <div className="flex flex-col gap-(--spacing-gutter) md:hidden">
           <HeroCard profile={profile} />
