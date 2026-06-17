@@ -3,9 +3,9 @@
 import Image from "next/image";
 import { useRef, useState } from "react";
 import type { Profile } from "@portfolio/schema";
+import { Card } from "@/components/ui/Card";
 import { Sheet } from "@/components/ui/Sheet";
 import { ContactForm } from "./ContactForm";
-import { SocialIcon } from "./SocialIcon";
 
 type SheetName = "biography" | "experience" | "contact" | null;
 
@@ -27,19 +27,15 @@ export function HomeMenu({ profile }: { profile: Profile }) {
     }, 400);
   };
 
-  const collapse = () => setExpanded(false);
+  const hasNav =
+    profile.experience.length > 0 || profile.projects.length > 0 || profile.contactEnabled;
 
   return (
     <>
-      {/* Collapsed pill */}
+      {/* Pill — top-left, desktop only */}
       <button
         onClick={() => setExpanded(true)}
-        aria-label="Open menu"
-        className={`fixed left-1/2 top-3 z-50 hidden -translate-x-1/2 items-center gap-3 rounded-2xl bg-glass px-4 py-2.5 backdrop-blur-md transition-all duration-300 ease-out md:flex ${
-          expanded
-            ? "pointer-events-none -translate-y-12 scale-90 opacity-0"
-            : "translate-y-0 scale-100 opacity-100"
-        }`}
+        className="fixed left-3 top-3 z-50 hidden items-center gap-3 rounded-2xl bg-glass px-4 py-2.5 backdrop-blur-md transition-opacity hover:opacity-80 md:flex"
       >
         <div className="text-left leading-tight">
           <p className="text-[15px]">{profile.displayName}</p>
@@ -54,88 +50,109 @@ export function HomeMenu({ profile }: { profile: Profile }) {
         />
       </button>
 
-      {/* Expanded card */}
+      {/* Backdrop */}
       <div
-        className={`fixed left-1/2 top-3 z-50 hidden w-80 -translate-x-1/2 flex-col overflow-hidden rounded-(--radius-card) bg-surface shadow-xl transition-all duration-300 ease-out md:flex ${
-          expanded
-            ? "translate-y-0 opacity-100"
-            : "pointer-events-none -translate-y-3 opacity-0"
+        className={`fixed inset-0 z-50 hidden transition-opacity duration-300 md:block ${
+          expanded ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
+        }`}
+        onClick={() => setExpanded(false)}
+      />
+
+      {/* Slide-in panel */}
+      <div
+        className={`fixed bottom-3 left-3 top-3 z-50 hidden w-[380px] flex-col gap-3 overflow-hidden rounded-(--radius-card) bg-canvas p-3 shadow-2xl transition-transform duration-400 ease-out md:flex ${
+          expanded ? "translate-x-0" : "-translate-x-[calc(100%+12px)]"
         }`}
       >
-        {/* Header row */}
-        <div className="flex items-center justify-between p-4">
-          <div className="flex items-center gap-3">
-            <Image
-              src={profile.hero.src}
-              alt={profile.hero.alt}
-              width={40}
-              height={40}
-              className="size-10 rounded-xl object-cover"
-            />
-            <div className="leading-tight">
-              <p className="text-[15px]">{profile.displayName}</p>
-              {profile.role && <p className="text-sm text-ink-muted">{profile.role}</p>}
-            </div>
+        {/* Header: name + role + avatar */}
+        <div className="flex items-start justify-between px-3 pb-1 pt-4">
+          <div>
+            <h2 className="text-3xl leading-tight">{profile.displayName}</h2>
+            {profile.role && <p className="mt-1 text-lg text-ink-muted">{profile.role}</p>}
           </div>
-          <button
-            onClick={collapse}
-            aria-label="Close menu"
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-surface-edge text-ink-muted transition-colors hover:text-ink"
-          >
-            <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden>
-              <path d="M1 1l9 9M10 1L1 10" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-            </svg>
-          </button>
+          <Image
+            src={profile.hero.src}
+            alt={profile.hero.alt}
+            width={120}
+            height={120}
+            className="size-[120px] rounded-2xl object-cover"
+          />
         </div>
 
-        {/* Nav rows */}
-        <div className="border-t border-surface-edge">
-          {profile.biography && (
-            <NavRow label="Biography" onClick={() => setSheet("biography")} />
-          )}
-          {profile.experience.length > 0 && (
-            <NavRow label="Experience" onClick={() => setSheet("experience")} />
-          )}
-          {profile.projects.length > 0 && (
-            <NavRow
-              label="Work"
-              onClick={() => {
-                collapse();
-                setTimeout(
-                  () => document.getElementById("work")?.scrollIntoView({ behavior: "smooth" }),
-                  300,
-                );
-              }}
-            />
-          )}
-          {profile.contactEnabled && (
-            <NavRow label="Contact" onClick={() => setSheet("contact")} />
-          )}
-        </div>
-
-        {/* Social links */}
-        {profile.social.length > 0 && (
-          <div className="flex items-center gap-5 border-t border-surface-edge px-5 py-4">
-            {profile.social.map((link) => (
-              <a
-                key={link.url}
-                href={link.url}
-                target="_blank"
-                rel="noreferrer"
-                aria-label={link.label}
-                className="text-ink-muted transition-colors hover:text-ink"
-              >
-                <SocialIcon label={link.label} />
-              </a>
-            ))}
-          </div>
+        {/* Biography */}
+        {profile.biography && (
+          <Card>
+            <button
+              onClick={() => setSheet("biography")}
+              className="flex w-full items-center justify-between px-6 py-5 text-left"
+            >
+              <span className="text-lg">Biography</span>
+              <span className="text-sm text-ink-muted">See more</span>
+            </button>
+          </Card>
         )}
-      </div>
 
-      {/* Backdrop */}
-      {expanded && (
-        <div className="fixed inset-0 z-40 hidden md:block" onClick={collapse} />
-      )}
+        {/* Experience / Work / Contact */}
+        {hasNav && (
+          <Card>
+            <ul>
+              {profile.experience.length > 0 && (
+                <li>
+                  <button
+                    onClick={() => setSheet("experience")}
+                    className="flex w-full items-center justify-between px-6 py-5 text-left"
+                  >
+                    <span className="text-lg">Experience</span>
+                    <Chevron />
+                  </button>
+                </li>
+              )}
+              {profile.projects.length > 0 && (
+                <li>
+                  {profile.experience.length > 0 && (
+                    <div className="mx-6 h-px bg-surface-edge" />
+                  )}
+                  <button
+                    onClick={() => {
+                      setExpanded(false);
+                      setTimeout(
+                        () =>
+                          document
+                            .getElementById("work")
+                            ?.scrollIntoView({ behavior: "smooth" }),
+                        400,
+                      );
+                    }}
+                    className="flex w-full items-center justify-between px-6 py-5 text-left"
+                  >
+                    <span className="text-lg">Work</span>
+                    <Chevron />
+                  </button>
+                </li>
+              )}
+              {profile.contactEnabled && (
+                <li>
+                  {(profile.experience.length > 0 || profile.projects.length > 0) && (
+                    <div className="mx-6 h-px bg-surface-edge" />
+                  )}
+                  <button
+                    onClick={() => setSheet("contact")}
+                    className="flex w-full items-center justify-between px-6 py-5 text-left"
+                  >
+                    <span className="text-lg">Contact</span>
+                    <Chevron />
+                  </button>
+                </li>
+              )}
+            </ul>
+          </Card>
+        )}
+
+        {/* Home indicator */}
+        <div className="mt-auto flex justify-center pb-1 pt-3">
+          <div className="h-1 w-32 rounded-full bg-surface-edge" />
+        </div>
+      </div>
 
       {/* Sheets */}
       <Sheet open={sheet === "biography"} onClose={closeSheet} title="Biography">
@@ -178,16 +195,17 @@ export function HomeMenu({ profile }: { profile: Profile }) {
   );
 }
 
-function NavRow({ label, onClick }: { label: string; onClick: () => void }) {
+function Chevron() {
   return (
-    <button
-      onClick={onClick}
-      className="flex w-full items-center justify-between px-5 py-4 text-left transition-colors hover:bg-surface-edge/40"
-    >
-      <span className="text-[15px]">{label}</span>
-      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
-        <path d="M6 3.5L10.5 8L6 12.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-ink-muted" />
-      </svg>
-    </button>
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path
+        d="M6 3.5L10.5 8L6 12.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="text-ink-muted"
+      />
+    </svg>
   );
 }
