@@ -126,6 +126,7 @@ export const ProjectSchema = z.object({
   slug: ProjectSlugSchema,
   title: z.string().min(1).max(80),
   subtitle: z.string().max(120).optional(),
+  year: z.number().int().min(1900).max(2100).optional(),
   /** Cover used by the home-page project card */
   cover: ImageAssetSchema,
   blocks: z.array(ProjectBlockSchema).max(30),

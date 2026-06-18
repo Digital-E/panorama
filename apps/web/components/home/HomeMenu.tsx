@@ -33,22 +33,31 @@ export function HomeMenu({ profile }: { profile: Profile }) {
   return (
     <>
       {/* Pill — top-left, desktop only */}
-      <button
-        onClick={() => setExpanded(true)}
-        className="fixed left-3 top-3 z-50 hidden items-center gap-3 rounded-2xl bg-glass px-4 py-2.5 backdrop-blur-md transition-opacity hover:opacity-80 md:flex"
-      >
-        <div className="text-left leading-tight">
-          <p className="text-[15px]">{profile.displayName}</p>
-          {profile.role && <p className="text-sm text-ink-muted">{profile.role}</p>}
-        </div>
-        <Image
-          src={profile.hero.src}
-          alt={profile.hero.alt}
-          width={48}
-          height={48}
-          className="size-12 rounded-xl object-cover"
-        />
-      </button>
+      <div className="fixed left-3 top-3 z-50 hidden flex-col items-start gap-2 md:flex">
+        <button
+          onClick={() => setExpanded(true)}
+          className="flex items-center px-4 py-2.5 transition-opacity hover:opacity-80"
+        >
+          <div className="text-left leading-tight">
+            <p className="text-[15px]">{profile.displayName}</p>
+            {profile.role && <p className="text-sm text-ink-muted">{profile.role}</p>}
+          </div>
+        </button>
+
+        {profile.biography && (
+          <button
+            onClick={() => setExpanded(true)}
+            aria-label="Open menu"
+            className="px-4 py-1 text-ink-muted transition-opacity hover:opacity-80"
+          >
+            <svg width="16" height="4" viewBox="0 0 16 4" fill="currentColor" aria-hidden>
+              <circle cx="2" cy="2" r="1.5" />
+              <circle cx="8" cy="2" r="1.5" />
+              <circle cx="14" cy="2" r="1.5" />
+            </svg>
+          </button>
+        )}
+      </div>
 
       {/* Backdrop */}
       <div

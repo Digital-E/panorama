@@ -5,7 +5,7 @@ import { getProfile, listPublishedUsernames } from "@/lib/data";
 import { HomeMenu } from "@/components/home/HomeMenu";
 import { HeroCard } from "@/components/home/HeroCard";
 import { SectionsNav } from "@/components/home/SectionsNav";
-import { ProjectCard } from "@/components/home/ProjectCard";
+import { ProjectsGrid } from "@/components/home/ProjectsGrid";
 import { FooterCard } from "@/components/home/FooterCard";
 
 /*
@@ -46,19 +46,20 @@ export default async function ProfilePage({ params }: Props) {
   return (
     <>
       <HomeMenu profile={profile} />
-      <main className="flex flex-col gap-(--spacing-gutter) p-(--spacing-gutter)">
+      <main className="flex flex-col gap-(--spacing-gutter) p-(--spacing-gutter) md:pl-[250px] md:pr-[150px]">
         <div className="flex flex-col gap-(--spacing-gutter) md:hidden">
           <HeroCard profile={profile} />
           <SectionsNav profile={profile} />
         </div>
-        <div
-          id="work"
-          className="scroll-mt-3 columns-1 gap-(--spacing-gutter) md:columns-2 lg:columns-3"
-        >
-          {profile.projects.map((project) => (
-            <ProjectCard key={project.slug} username={profile.username} project={project} />
-          ))}
-        </div>
+        <ProjectsGrid
+          username={profile.username}
+          projects={[
+            ...profile.projects,
+            ...profile.projects.map((p) => ({ ...p, slug: `${p.slug}-b` })),
+            ...profile.projects.map((p) => ({ ...p, slug: `${p.slug}-c` })),
+            ...profile.projects.map((p) => ({ ...p, slug: `${p.slug}-d` })),
+          ]}
+        />
         <FooterCard profile={profile} />
       </main>
     </>

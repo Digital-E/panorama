@@ -28,6 +28,7 @@ export const demoProfile: Profile = {
       slug: "gates-of-eternity",
       title: "Gates of Eternity",
       subtitle: "Oblivion is Nigh My Friend",
+      year: 2026,
       cover: { src: "/project-1.jpg", width: 1600, height: 2000, alt: "Figure in shadow" },
       blocks: [
         {
@@ -101,6 +102,7 @@ export const demoProfile: Profile = {
     {
       slug: "the-portal-of-joy",
       title: "The Portal of Joy",
+      year: 2025,
       cover: { src: "/project-2.jpg", width: 1600, height: 1200, alt: "Sea, summer campaign" },
       blocks: [
         {
@@ -137,6 +139,7 @@ export const demoProfile: Profile = {
     {
       slug: "summer-reverie",
       title: "Summer Reverie",
+      year: 2025,
       cover: { src: "/project-4.jpg", width: 1440, height: 1800, alt: "Model reclining on a rocky beach at dusk" },
       blocks: [
         {
@@ -152,6 +155,7 @@ export const demoProfile: Profile = {
     {
       slug: "discovering-bliss",
       title: "Discovering Bliss",
+      year: 2024,
       cover: { src: "/project-3.jpg", width: 1600, height: 1300, alt: "Studio with exercise ball" },
       blocks: [
         {
@@ -167,6 +171,7 @@ export const demoProfile: Profile = {
     {
       slug: "shore-light",
       title: "Shore Light",
+      year: 2024,
       cover: { src: "/project-5.jpg", width: 1440, height: 1800, alt: "Model with paddle racket against sparkling water" },
       blocks: [
         {
@@ -182,6 +187,7 @@ export const demoProfile: Profile = {
     {
       slug: "parallel",
       title: "Parallel",
+      year: 2023,
       cover: { src: "/project-6.png", width: 1714, height: 1368, alt: "Two models on grass" },
       blocks: [
         {
@@ -197,6 +203,7 @@ export const demoProfile: Profile = {
     {
       slug: "sediment",
       title: "Sediment",
+      year: 2023,
       cover: { src: "/project-7.jpg", width: 1080, height: 1350, alt: "Model in grey sweater on leather sofa" },
       blocks: [
         {
@@ -212,6 +219,7 @@ export const demoProfile: Profile = {
     {
       slug: "elevation",
       title: "Elevation",
+      year: 2022,
       cover: { src: "/project-8.jpg", width: 1080, height: 1350, alt: "Model on stacked chairs on a misty beach" },
       blocks: [
         {
