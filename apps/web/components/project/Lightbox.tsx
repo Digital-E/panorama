@@ -108,6 +108,15 @@ export function Lightbox({
     if (chromeRef.current) chromeRef.current.style.transition = on ? `opacity ${SETTLE}ms ease` : "none";
   }
 
+  const onStageClick = (e: React.MouseEvent) => {
+    if (!many || drag.current.decided) return;
+    if (e.clientX > window.innerWidth / 2) {
+      swiperRef.current?.slideNext();
+    } else {
+      swiperRef.current?.slidePrev();
+    }
+  };
+
   const onPointerDown = (e: React.PointerEvent) => {
     drag.current = { active: true, decided: false, vertical: false, startX: e.clientX, startY: e.clientY, lastY: e.clientY, lastT: Date.now(), vy: 0 };
   };
@@ -166,8 +175,7 @@ export function Lightbox({
   const barStyle: React.CSSProperties = {
     left: "50%",
     transform: "translateX(-50%)",
-    width: "calc(100% - 1.5rem)",
-    maxWidth: "var(--container-column)",
+    width: "calc(100% - 3rem)",
   };
 
   return (
@@ -183,6 +191,7 @@ export function Lightbox({
       {/* Image stage — also the dismiss-drag surface. */}
       <div
         ref={stageRef}
+        onClick={onStageClick}
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -190,7 +199,7 @@ export function Lightbox({
         // touch-action none: stop the browser handling vertical drags (Swiper's
         // default `pan-y` is what lets iOS pull-to-refresh fire). Swiper still
         // pages horizontally via JS; our handlers own the vertical dismiss.
-        style={{ position: "absolute", left: 0, right: 0, top: "5.5rem", bottom: "5.5rem", touchAction: "none" }}
+        style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, touchAction: "none" }}
       >
         <Swiper
           modules={[Keyboard]}
@@ -216,7 +225,7 @@ export function Lightbox({
                 src={im.src}
                 alt={im.alt}
                 draggable={false}
-                className="max-h-full w-full max-w-(--container-column) rounded-(--radius-card) object-contain"
+                className="max-h-full w-full max-w-(--container-column) md:max-w-none rounded-(--radius-card) object-contain"
               />
             </SwiperSlide>
           ))}

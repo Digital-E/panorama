@@ -8,18 +8,39 @@ import { Sheet } from "@/components/ui/Sheet";
 import { ContactForm } from "./ContactForm";
 
 type SheetName = "biography" | "experience" | "contact" | null;
+type CardPage = "menu" | "biography" | "experience" | "contact";
 
 export function HomeMenu({ profile }: { profile: Profile }) {
   const [expanded, setExpanded] = useState(false);
+  const [showCard, setShowCard] = useState(false);
+  const [cardPage, setCardPage] = useState<CardPage>("menu");
+  const [displayedPage, setDisplayedPage] = useState<CardPage>("menu");
   const [sheet, setSheet] = useState<SheetName>(null);
   const closeSheet = () => setSheet(null);
 
   const [toast, setToast] = useState(false);
   const toastTimeout = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
+  const goToPage = (page: Exclude<CardPage, "menu">) => {
+    setDisplayedPage(page);
+    setCardPage(page);
+  };
+
+  const goBack = () => {
+    setCardPage("menu");
+    setTimeout(() => setDisplayedPage("menu"), 300);
+  };
+
+  const closeCard = () => {
+    setShowCard(false);
+    setTimeout(() => { setCardPage("menu"); setDisplayedPage("menu"); }, 300);
+  };
+
   const handleSent = () => {
     setSheet(null);
     setExpanded(false);
+    setShowCard(false);
+    setTimeout(() => { setCardPage("menu"); setDisplayedPage("menu"); }, 300);
     setTimeout(() => {
       clearTimeout(toastTimeout.current);
       setToast(true);
@@ -32,34 +53,155 @@ export function HomeMenu({ profile }: { profile: Profile }) {
 
   return (
     <>
-      {/* Pill — top-left, desktop only */}
+      {/* Top-left — desktop only */}
       <div className="fixed left-3 top-3 z-50 hidden flex-col items-start gap-2 md:flex">
-        <button
-          onClick={() => setExpanded(true)}
-          className="flex items-center px-4 py-2.5 transition-opacity hover:opacity-80"
-        >
+        <div className="flex items-center px-4 py-2.5">
           <div className="text-left leading-tight">
             <p className="text-[15px]">{profile.displayName}</p>
             {profile.role && <p className="text-sm text-ink-muted">{profile.role}</p>}
           </div>
-        </button>
+        </div>
 
-        {profile.biography && (
-          <button
-            onClick={() => setExpanded(true)}
-            aria-label="Open menu"
-            className="px-4 py-1 text-ink-muted transition-opacity hover:opacity-80"
-          >
-            <svg width="16" height="4" viewBox="0 0 16 4" fill="currentColor" aria-hidden>
-              <circle cx="2" cy="2" r="1.5" />
-              <circle cx="8" cy="2" r="1.5" />
-              <circle cx="14" cy="2" r="1.5" />
-            </svg>
-          </button>
-        )}
+        <button
+          onClick={() => setShowCard(true)}
+          aria-label="Open menu"
+          className="px-4 py-1 text-ink-muted transition-opacity hover:opacity-80 cursor-pointer"
+        >
+          <svg width="16" height="4" viewBox="0 0 16 4" fill="currentColor" aria-hidden>
+            <circle cx="2" cy="2" r="1.5" />
+            <circle cx="8" cy="2" r="1.5" />
+            <circle cx="14" cy="2" r="1.5" />
+          </svg>
+        </button>
       </div>
 
       {/* Backdrop */}
+      <div
+        className={`fixed inset-0 z-50 bg-black/50 backdrop-blur-sm transition-opacity duration-300 ${showCard ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
+        onClick={closeCard}
+      />
+
+      {/* Centered card */}
+      <div
+        className={`fixed left-3 top-3 z-50 w-[400px] overflow-hidden rounded-(--radius-card) bg-canvas shadow-2xl transition-all duration-300 ${showCard ? "opacity-100 blur-0 scale-100 pointer-events-auto" : "opacity-0 blur-sm scale-95 pointer-events-none"}`}
+      >
+        {/* Slide wrapper — 200% wide, two panels side by side */}
+        <div
+          className={`flex transition-transform duration-300 ease-in-out ${cardPage !== "menu" ? "-translate-x-1/2" : ""}`}
+          style={{ width: "200%" }}
+        >
+          {/* ── Menu panel ── */}
+          <div className={`w-1/2 transition-opacity duration-300 ${cardPage !== "menu" ? "opacity-0" : "opacity-100"}`}>
+            <div className="px-6 pb-4 pt-6">
+              <h2 className="text-[15px] leading-tight">{profile.displayName}</h2>
+              {profile.role && <p className="mt-1 text-[15px] text-ink-muted">{profile.role}</p>}
+            </div>
+            <ul className="pb-2">
+              {profile.biography && (
+                <li>
+                  <div className="mx-6 h-px bg-surface-edge" />
+                  <button
+                    onClick={() => goToPage("biography")}
+                    className="flex w-full items-center justify-between px-6 py-5 text-left"
+                  >
+                    <span className="text-[15px]">Biography</span>
+                    <span className="text-[15px] text-ink-muted">See more</span>
+                  </button>
+                </li>
+              )}
+              {profile.experience.length > 0 && (
+                <li>
+                  <div className="mx-6 h-px bg-surface-edge" />
+                  <button
+                    onClick={() => goToPage("experience")}
+                    className="flex w-full items-center justify-between px-6 py-5 text-left"
+                  >
+                    <span className="text-[15px]">Experience</span>
+                    <Chevron />
+                  </button>
+                </li>
+              )}
+              {profile.projects.length > 0 && (
+                <li>
+                  <div className="mx-6 h-px bg-surface-edge" />
+                  <button
+                    onClick={() => {
+                      closeCard();
+                      setTimeout(
+                        () => document.getElementById("work")?.scrollIntoView({ behavior: "smooth" }),
+                        200,
+                      );
+                    }}
+                    className="flex w-full items-center justify-between px-6 py-5 text-left"
+                  >
+                    <span className="text-[15px]">Work</span>
+                    <Chevron />
+                  </button>
+                </li>
+              )}
+              {profile.contactEnabled && (
+                <li>
+                  <div className="mx-6 h-px bg-surface-edge" />
+                  <button
+                    onClick={() => goToPage("contact")}
+                    className="flex w-full items-center justify-between px-6 py-5 text-left"
+                  >
+                    <span className="text-[15px]">Contact</span>
+                    <Chevron />
+                  </button>
+                </li>
+              )}
+            </ul>
+          </div>
+
+          {/* ── Detail panel ── */}
+          <div className="w-1/2">
+            <div className="flex items-center gap-3 px-6 pt-6 pb-6">
+              <button
+                onClick={goBack}
+                aria-label="Back"
+                className="flex items-center justify-center w-7 h-7 rounded-full bg-surface text-ink-muted hover:text-ink transition-colors cursor-pointer"
+              >
+                <BackChevron />
+              </button>
+              <h2 className="text-[15px]">
+                {displayedPage === "biography"
+                  ? "Biography"
+                  : displayedPage === "experience"
+                  ? "Experience"
+                  : "Contact"}
+              </h2>
+            </div>
+            <div className="px-6 pb-6">
+              {displayedPage === "biography" && (
+                <div className="space-y-4 text-[14px] text-ink/90 leading-relaxed">
+                  {profile.biography?.split("\n\n").map((para, i) => (
+                    <p key={i}>{para}</p>
+                  ))}
+                </div>
+              )}
+              {displayedPage === "experience" && (
+                <ol className="space-y-8 border-l border-surface-edge pl-5">
+                  {profile.experience.map((entry) => (
+                    <li key={entry.id}>
+                      <p className="text-[13px] text-ink-muted">{entry.period}</p>
+                      <p className="mt-1 text-[15px]">{entry.title}</p>
+                      {entry.subtitle && (
+                        <p className="mt-0.5 text-[13px] text-ink-muted">{entry.subtitle}</p>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              )}
+              {displayedPage === "contact" && (
+                <ContactForm username={profile.username} onSent={handleSent} />
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Backdrop — slide-in panel */}
       <div
         className={`fixed inset-0 z-50 hidden transition-opacity duration-300 md:block ${
           expanded ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0"
@@ -73,7 +215,6 @@ export function HomeMenu({ profile }: { profile: Profile }) {
           expanded ? "translate-x-0" : "-translate-x-[calc(100%+12px)]"
         }`}
       >
-        {/* Header: name + role + avatar */}
         <div className="flex items-start justify-between px-3 pb-1 pt-4">
           <div>
             <h2 className="text-3xl leading-tight">{profile.displayName}</h2>
@@ -88,7 +229,6 @@ export function HomeMenu({ profile }: { profile: Profile }) {
           />
         </div>
 
-        {/* Biography */}
         {profile.biography && (
           <Card>
             <button
@@ -101,7 +241,6 @@ export function HomeMenu({ profile }: { profile: Profile }) {
           </Card>
         )}
 
-        {/* Experience / Work / Contact */}
         {hasNav && (
           <Card>
             <ul>
@@ -118,17 +257,12 @@ export function HomeMenu({ profile }: { profile: Profile }) {
               )}
               {profile.projects.length > 0 && (
                 <li>
-                  {profile.experience.length > 0 && (
-                    <div className="mx-6 h-px bg-surface-edge" />
-                  )}
+                  {profile.experience.length > 0 && <div className="mx-6 h-px bg-surface-edge" />}
                   <button
                     onClick={() => {
                       setExpanded(false);
                       setTimeout(
-                        () =>
-                          document
-                            .getElementById("work")
-                            ?.scrollIntoView({ behavior: "smooth" }),
+                        () => document.getElementById("work")?.scrollIntoView({ behavior: "smooth" }),
                         400,
                       );
                     }}
@@ -157,7 +291,6 @@ export function HomeMenu({ profile }: { profile: Profile }) {
           </Card>
         )}
 
-        {/* Home indicator */}
         <div className="mt-auto flex justify-center pb-1 pt-3">
           <div className="h-1 w-32 rounded-full bg-surface-edge" />
         </div>
@@ -178,9 +311,7 @@ export function HomeMenu({ profile }: { profile: Profile }) {
             <li key={entry.id}>
               <p className="text-[15px] text-ink-muted">{entry.period}</p>
               <p className="mt-1 text-lg">{entry.title}</p>
-              {entry.subtitle && (
-                <p className="mt-0.5 text-ink-muted">{entry.subtitle}</p>
-              )}
+              {entry.subtitle && <p className="mt-0.5 text-ink-muted">{entry.subtitle}</p>}
             </li>
           ))}
         </ol>
@@ -214,6 +345,20 @@ function Chevron() {
         strokeLinecap="round"
         strokeLinejoin="round"
         className="text-ink-muted"
+      />
+    </svg>
+  );
+}
+
+function BackChevron() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden>
+      <path
+        d="M10 3.5L5.5 8L10 12.5"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
       />
     </svg>
   );

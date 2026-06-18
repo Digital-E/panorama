@@ -7,7 +7,7 @@
  */
 @theme {
   /* Colour */
-  --color-canvas: #0C1013;            /* page background */
+  --color-canvas: #111315;            /* page background */
   --color-surface: #26292E;           /* cards & sheets */
   --color-surface-edge: #2c2d31;      /* hairline dividers (est.) */
   --color-field: #4a4b4d;             /* form inputs (est.) */

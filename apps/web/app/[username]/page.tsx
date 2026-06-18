@@ -46,7 +46,7 @@ export default async function ProfilePage({ params }: Props) {
   return (
     <>
       <HomeMenu profile={profile} />
-      <main className="flex flex-col gap-(--spacing-gutter) p-(--spacing-gutter) md:pl-[250px] md:pr-[150px]">
+      <main className="flex flex-col gap-(--spacing-gutter) p-(--spacing-gutter) pt-5 md:pl-[250px] md:pr-[150px]">
         <div className="flex flex-col gap-(--spacing-gutter) md:hidden">
           <HeroCard profile={profile} />
           <SectionsNav profile={profile} />

@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import type { Project } from "@portfolio/schema";
+import { useViewMode, type ViewMode } from "@/lib/useViewMode";
 import { ProjectCard } from "./ProjectCard";
 import { ArchiveProjectCard } from "./ArchiveProjectCard";
 import { ListProjectCard } from "./ListProjectCard";
 
-type ViewMode = "masonry" | "archive" | "archive-sharp" | "list" | "list-text" | "list-sharp-crop";
 
 function MasonryIcon() {
   return (
@@ -96,7 +96,7 @@ export function ProjectsGrid({
   username: string;
   projects: Project[];
 }) {
-  const [view, setView] = useState<ViewMode>("archive");
+  const [view, setView] = useViewMode();
   const [sortBy, setSortBy] = useState<"default" | "az" | "year">("default");
 
   const isArchive = view === "archive" || view === "archive-sharp";
