@@ -122,13 +122,22 @@ export const ProjectSlugSchema = z
   .max(60)
   .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
 
+export const VideoAssetSchema = z.object({
+  src: z.string().min(1),
+  width: z.number().int().positive().optional(),
+  height: z.number().int().positive().optional(),
+});
+export type VideoAsset = z.infer<typeof VideoAssetSchema>;
+
 export const ProjectSchema = z.object({
   slug: ProjectSlugSchema,
   title: z.string().min(1).max(80),
   subtitle: z.string().max(120).optional(),
   year: z.number().int().min(1900).max(2100).optional(),
-  /** Cover used by the home-page project card */
+  /** Cover image used by project cards (also serves as video poster) */
   cover: ImageAssetSchema,
+  /** Optional video to play instead of the cover image on project cards */
+  coverVideo: VideoAssetSchema.optional(),
   blocks: z.array(ProjectBlockSchema).max(30),
 });
 export type Project = z.infer<typeof ProjectSchema>;

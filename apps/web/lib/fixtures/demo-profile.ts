@@ -232,5 +232,56 @@ export const demoProfile: Profile = {
         },
       ],
     },
+    {
+      slug: "motion-study-i",
+      title: "Motion Study I",
+      year: 2022,
+      cover: { src: "/project-1.jpg", width: 1600, height: 2000, alt: "Motion Study I" },
+      coverVideo: { src: "/vid1.mp4" },
+      blocks: [
+        {
+          id: "ms1b1",
+          type: "story",
+          data: {
+            heading: "The Story",
+            text: "Movement as the subject — the body caught between frames, neither still nor fully in motion.",
+          },
+        },
+      ],
+    },
+    {
+      slug: "motion-study-ii",
+      title: "Motion Study II",
+      year: 2022,
+      cover: { src: "/project-2.jpg", width: 1600, height: 1200, alt: "Motion Study II" },
+      coverVideo: { src: "/vid2.mp4" },
+      blocks: [
+        {
+          id: "ms2b1",
+          type: "story",
+          data: {
+            heading: "The Story",
+            text: "A continuation — same vocabulary, different light. The camera held looser, the figures less composed.",
+          },
+        },
+      ],
+    },
+    {
+      slug: "motion-study-iii",
+      title: "Motion Study III",
+      year: 2021,
+      cover: { src: "/project-3.jpg", width: 1600, height: 1300, alt: "Motion Study III" },
+      coverVideo: { src: "/vid3.mp4" },
+      blocks: [
+        {
+          id: "ms3b1",
+          type: "story",
+          data: {
+            heading: "The Story",
+            text: "The final study. Duration replaces gesture; time becomes the medium.",
+          },
+        },
+      ],
+    },
   ],
 };

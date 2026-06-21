@@ -61,6 +61,11 @@ export default async function ProfilePage({ params }: Props) {
           ]}
         />
         <FooterCard profile={profile} />
+        <img
+          src="/Panorama-logo-1.svg"
+          alt="Panorama"
+          className="w-full my-[10px]"
+        />
       </main>
     </>
   );

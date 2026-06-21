@@ -8,87 +8,6 @@ import { ArchiveProjectCard } from "./ArchiveProjectCard";
 import { ListProjectCard } from "./ListProjectCard";
 
 
-function MasonryIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor" aria-hidden>
-      <rect x="0" y="0" width="4" height="9" rx="1" />
-      <rect x="0" y="10" width="4" height="5" rx="1" />
-      <rect x="5.5" y="0" width="4" height="5" rx="1" />
-      <rect x="5.5" y="6" width="4" height="9" rx="1" />
-      <rect x="11" y="0" width="4" height="7" rx="1" />
-      <rect x="11" y="8" width="4" height="7" rx="1" />
-    </svg>
-  );
-}
-
-function ArchiveRoundedIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor" aria-hidden>
-      <rect x="0" y="0" width="4" height="4" rx="1.5" />
-      <rect x="5.5" y="0" width="4" height="4" rx="1.5" />
-      <rect x="11" y="0" width="4" height="4" rx="1.5" />
-      <rect x="0" y="5.5" width="4" height="4" rx="1.5" />
-      <rect x="5.5" y="5.5" width="4" height="4" rx="1.5" />
-      <rect x="11" y="5.5" width="4" height="4" rx="1.5" />
-      <rect x="0" y="11" width="4" height="4" rx="1.5" />
-      <rect x="5.5" y="11" width="4" height="4" rx="1.5" />
-      <rect x="11" y="11" width="4" height="4" rx="1.5" />
-    </svg>
-  );
-}
-
-function ArchiveSharpIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor" aria-hidden>
-      <rect x="0" y="0" width="4" height="4" />
-      <rect x="5.5" y="0" width="4" height="4" />
-      <rect x="11" y="0" width="4" height="4" />
-      <rect x="0" y="5.5" width="4" height="4" />
-      <rect x="5.5" y="5.5" width="4" height="4" />
-      <rect x="11" y="5.5" width="4" height="4" />
-      <rect x="0" y="11" width="4" height="4" />
-      <rect x="5.5" y="11" width="4" height="4" />
-      <rect x="11" y="11" width="4" height="4" />
-    </svg>
-  );
-}
-
-function ListSharpIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor" aria-hidden>
-      <rect x="0" y="0.5" width="4" height="4" />
-      <rect x="6" y="2" width="9" height="1.5" rx="0.75" />
-      <rect x="0" y="5.5" width="4" height="4" />
-      <rect x="6" y="7" width="9" height="1.5" rx="0.75" />
-      <rect x="0" y="10.5" width="4" height="4" />
-      <rect x="6" y="12" width="9" height="1.5" rx="0.75" />
-    </svg>
-  );
-}
-
-function ListRoundedIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor" aria-hidden>
-      <rect x="0" y="0.5" width="4" height="4" rx="1.5" />
-      <rect x="6" y="2" width="9" height="1.5" rx="0.75" />
-      <rect x="0" y="5.5" width="4" height="4" rx="1.5" />
-      <rect x="6" y="7" width="9" height="1.5" rx="0.75" />
-      <rect x="0" y="10.5" width="4" height="4" rx="1.5" />
-      <rect x="6" y="12" width="9" height="1.5" rx="0.75" />
-    </svg>
-  );
-}
-
-function ListTextIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor" aria-hidden>
-      <rect x="0" y="1.5" width="15" height="1.5" rx="0.75" />
-      <rect x="0" y="6.75" width="15" height="1.5" rx="0.75" />
-      <rect x="0" y="12" width="15" height="1.5" rx="0.75" />
-    </svg>
-  );
-}
-
 export function ProjectsGrid({
   username,
   projects,
@@ -114,13 +33,10 @@ export function ProjectsGrid({
     return 0;
   }) : projects;
 
-  const buttons: { mode: ViewMode; label: string; icon: React.ReactNode }[] = [
-    { mode: "masonry", label: "Masonry view", icon: <MasonryIcon /> },
-    { mode: "archive", label: "Archive view (rounded)", icon: <ArchiveRoundedIcon /> },
-    { mode: "archive-sharp", label: "Archive view (sharp)", icon: <ArchiveSharpIcon /> },
-    { mode: "list", label: "List view (sharp)", icon: <ListSharpIcon /> },
-    { mode: "list-text", label: "List view (text only)", icon: <ListTextIcon /> },
-    { mode: "list-sharp-crop", label: "List view (rounded)", icon: <ListRoundedIcon /> },
+  const buttons: { mode: ViewMode; label: string }[] = [
+    { mode: "masonry", label: "Spotlight" },
+    { mode: "archive", label: "Archive" },
+    { mode: "list", label: "List" },
   ];
 
   return (
@@ -142,17 +58,16 @@ export function ProjectsGrid({
             ))}
           </div>
         )}
-        {buttons.map(({ mode, label, icon }) => (
+        {buttons.map(({ mode, label }) => (
           <button
             key={mode}
             onClick={() => setView(mode)}
-            aria-label={label}
             aria-pressed={view === mode}
-            className={`p-1.5 rounded-lg transition-colors duration-150 ${
+            className={`px-2 py-1 text-xs rounded-lg transition-colors duration-150 ${
               view === mode ? "text-ink" : "text-ink-muted hover:text-ink"
             }`}
           >
-            {icon}
+            {label}
           </button>
         ))}
       </div>
@@ -187,7 +102,7 @@ export function ProjectsGrid({
       {(isList || view === "list-sharp-crop") && (
         <div className="flex flex-col divide-y divide-[var(--color-surface-edge)]">
           {/* Column headers */}
-          <div className="flex items-center gap-4 pb-2">
+          <div className="flex items-center gap-4 px-3 pb-2">
             {view !== "list-text" && <div className="shrink-0 w-10" />}
             <div className="flex-1 min-w-0 text-xs text-ink-muted">Project</div>
             <span className="shrink-0 text-xs text-ink-muted">Year</span>
