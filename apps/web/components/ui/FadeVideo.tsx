@@ -19,7 +19,7 @@ export function FadeVideo({ className = "", src, onLoadedData, ...props }: Props
   // On touch/mobile devices skip entirely — poster image shows instead.
   useEffect(() => {
     const el = ref.current;
-    if (!el || !src) return;
+    if (!el || typeof src !== "string") return;
     if (window.matchMedia("(hover: none)").matches) return;
     if (!("IntersectionObserver" in window)) {
       setActiveSrc(src);
