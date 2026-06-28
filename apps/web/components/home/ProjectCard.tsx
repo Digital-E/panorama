@@ -14,12 +14,12 @@ export function ProjectCard({
   project: Project;
 }) {
   return (
-    <Link href={`/${username}/${project.slug}`} className="group mb-(--spacing-gutter) block break-inside-avoid">
+    <Link href={`/${username}/${project.slug}`} className="group block">
       <Card className="relative">
         {project.coverVideo ? (
           <FadeVideo
             src={project.coverVideo.src}
-            poster={project.cover.src}
+            poster={project.coverVideo.poster ?? project.cover.src}
             width={project.coverVideo.width ?? project.cover.width}
             height={project.coverVideo.height ?? project.cover.height}
             autoPlay

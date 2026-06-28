@@ -28,27 +28,35 @@ export function MobileProjectGrid({ images }: { images: ImageAsset[] }) {
     setHiddenIndex(null);
   };
 
+  // Assign images left-to-right: even indices → left column, odd → right column.
+  // Each column is a flex column so images stack at natural height (masonry).
+  const left = images.map((img, i) => ({ img, i })).filter(({ i }) => i % 2 === 0);
+  const right = images.map((img, i) => ({ img, i })).filter(({ i }) => i % 2 === 1);
+
+  const renderBtn = ({ img, i }: { img: ImageAsset; i: number }) => (
+    <button
+      key={i}
+      ref={(el) => { btnRefs.current[i] = el; }}
+      onClick={() => open(i)}
+      className="block w-full cursor-pointer"
+      style={{ opacity: hiddenIndex === i ? 0 : 1 }}
+    >
+      <FadeImage
+        src={img.src}
+        alt={img.alt}
+        width={img.width}
+        height={img.height}
+        sizes="50vw"
+        className="w-full h-auto"
+      />
+    </button>
+  );
+
   return (
     <>
-      <div className="columns-2 gap-1 p-1">
-        {images.map((image, i) => (
-          <button
-            key={i}
-            ref={(el) => { btnRefs.current[i] = el; }}
-            onClick={() => open(i)}
-            className="block w-full break-inside-avoid mb-1 cursor-pointer"
-            style={{ opacity: hiddenIndex === i ? 0 : 1 }}
-          >
-            <FadeImage
-              src={image.src}
-              alt={image.alt}
-              width={image.width}
-              height={image.height}
-              sizes="50vw"
-              className="w-full h-auto"
-            />
-          </button>
-        ))}
+      <div className="flex gap-1 p-1 items-start">
+        <div className="flex-1 flex flex-col gap-1">{left.map(renderBtn)}</div>
+        <div className="flex-1 flex flex-col gap-1">{right.map(renderBtn)}</div>
       </div>
 
       {lightboxIndex !== null && (

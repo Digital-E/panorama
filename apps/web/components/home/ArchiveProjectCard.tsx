@@ -22,7 +22,7 @@ export function ArchiveProjectCard({
       {project.coverVideo ? (
         <FadeVideo
           src={project.coverVideo.src}
-          poster={project.cover.src}
+          poster={project.coverVideo.poster ?? project.cover.src}
           autoPlay
           muted
           loop

@@ -124,6 +124,7 @@ export const ProjectSlugSchema = z
 
 export const VideoAssetSchema = z.object({
   src: z.string().min(1),
+  poster: z.string().optional(),
   width: z.number().int().positive().optional(),
   height: z.number().int().positive().optional(),
 });

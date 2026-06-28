@@ -59,21 +59,17 @@ export function ProjectGallery({
         </div>
       </div>
 
-      {/* Masonry */}
-      <div
-        className={`columns-1 gap-(--spacing-gutter) md:columns-2 lg:columns-3 ${
-          view === "archive-sharp" || isList || view === "list-sharp-crop"
-            ? "hidden"
-            : isArchive
-            ? "md:hidden"
-            : ""
-        }`}
-      >
-        {images.map((image, i) => (
+      {/* Masonry: 1-col mobile, 2-col md, 3-col lg — items assigned left-to-right */}
+      {(() => {
+        const gone = view === "archive-sharp" || isList || view === "list-sharp-crop";
+        const col1 = gone ? "hidden" : "flex flex-col gap-(--spacing-gutter) md:hidden";
+        const col2 = gone || isArchive ? "hidden" : "hidden md:flex lg:hidden gap-(--spacing-gutter)";
+        const col3 = gone || isArchive ? "hidden" : "hidden lg:flex gap-(--spacing-gutter)";
+        const renderBtn = (image: ImageAsset, i: number) => (
           <button
             key={i}
             onClick={() => setLightboxIndex(i)}
-            className="block w-full break-inside-avoid mb-(--spacing-gutter) cursor-pointer"
+            className="block w-full cursor-pointer"
           >
             <FadeImage
               src={image.src}
@@ -84,8 +80,22 @@ export function ProjectGallery({
               className="w-full h-auto rounded-xl"
             />
           </button>
-        ))}
-      </div>
+        );
+        return (
+          <>
+            <div className={col1}>{images.map(renderBtn)}</div>
+            <div className={col2}>
+              <div className="flex-1 flex flex-col gap-(--spacing-gutter)">{images.filter((_, i) => i % 2 === 0).map(renderBtn)}</div>
+              <div className="flex-1 flex flex-col gap-(--spacing-gutter)">{images.filter((_, i) => i % 2 === 1).map(renderBtn)}</div>
+            </div>
+            <div className={col3}>
+              <div className="flex-1 flex flex-col gap-(--spacing-gutter)">{images.filter((_, i) => i % 3 === 0).map(renderBtn)}</div>
+              <div className="flex-1 flex flex-col gap-(--spacing-gutter)">{images.filter((_, i) => i % 3 === 1).map(renderBtn)}</div>
+              <div className="flex-1 flex flex-col gap-(--spacing-gutter)">{images.filter((_, i) => i % 3 === 2).map(renderBtn)}</div>
+            </div>
+          </>
+        );
+      })()}
 
       {/* Archive grid */}
       {isArchive && (

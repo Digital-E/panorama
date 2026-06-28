@@ -1,54 +1,40 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-
 type Props = React.VideoHTMLAttributes<HTMLVideoElement>;
 
-export function FadeVideo({ className = "", src, onLoadedData, ...props }: Props) {
-  const [ready, setReady] = useState(false);
-  const [activeSrc, setActiveSrc] = useState<string | undefined>(undefined);
-  const ref = useRef<HTMLVideoElement>(null);
-
-  // Check if video data is already cached (e.g. on back-navigation).
-  useEffect(() => {
-    if (ref.current && ref.current.readyState >= 2) setReady(true);
-  }, []);
-
-  // Only set src once the card is near the viewport — prevents every autoPlay
-  // video on the page from downloading simultaneously on load.
-  // On touch/mobile devices skip entirely — poster image shows instead.
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || typeof src !== "string") return;
-    if (window.matchMedia("(hover: none)").matches) return;
-    if (!("IntersectionObserver" in window)) {
-      setActiveSrc(src);
-      return;
-    }
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setActiveSrc(src);
-          observer.disconnect();
-        }
-      },
-      { rootMargin: "400px" },
+// Video playback is temporarily disabled. When a poster is available, render
+// a plain <img> so it displays reliably on all devices including mobile.
+// To restore video: bring back IntersectionObserver + src loading logic.
+export function FadeVideo({
+  className = "",
+  src: _src,
+  onLoadedData: _onLoadedData,
+  autoPlay: _autoPlay,
+  loop: _loop,
+  muted: _muted,
+  playsInline: _playsInline,
+  poster,
+  ...props
+}: Props) {
+  if (poster) {
+    const { width, height, style } = props as { width?: number; height?: number; style?: React.CSSProperties };
+    return (
+      <img
+        src={poster}
+        alt=""
+        width={width}
+        height={height}
+        style={style}
+        className={`opacity-100 ${className}`}
+      />
     );
-    observer.observe(el);
-    return () => observer.disconnect();
-  }, [src]);
+  }
 
   return (
     <video
-      ref={ref}
       {...props}
-      src={activeSrc}
-      preload={activeSrc ? "metadata" : "none"}
-      onLoadedData={(e) => {
-        setReady(true);
-        onLoadedData?.(e);
-      }}
-      className={`transition-opacity duration-300 ${ready ? "opacity-100" : "opacity-0"} ${className}`}
+      preload="none"
+      className={`opacity-100 ${className}`}
     />
   );
 }

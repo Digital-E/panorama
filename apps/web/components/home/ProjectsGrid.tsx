@@ -72,16 +72,30 @@ export function ProjectsGrid({
         ))}
       </div>
 
-      {/* Masonry: hidden for archive-sharp and list; hidden on desktop for rounded archive */}
-      <div
-        className={`columns-1 gap-(--spacing-gutter) md:columns-2 lg:columns-3 ${
-          view === "archive-sharp" || isList || view === "list-sharp-crop" ? "hidden" : isArchive ? "md:hidden" : ""
-        }`}
-      >
-        {projects.map((project) => (
+      {/* Masonry: 1-col mobile, 2-col md, 3-col lg — items assigned left-to-right */}
+      {(() => {
+        const gone = view === "archive-sharp" || isList || view === "list-sharp-crop";
+        const col1 = gone ? "hidden" : "flex flex-col gap-(--spacing-gutter) md:hidden";
+        const col2 = gone || isArchive ? "hidden" : "hidden md:flex lg:hidden gap-(--spacing-gutter)";
+        const col3 = gone || isArchive ? "hidden" : "hidden lg:flex gap-(--spacing-gutter)";
+        const renderCard = (project: Project) => (
           <ProjectCard key={project.slug} username={username} project={project} />
-        ))}
-      </div>
+        );
+        return (
+          <>
+            <div className={col1}>{projects.map(renderCard)}</div>
+            <div className={col2}>
+              <div className="flex-1 flex flex-col gap-(--spacing-gutter)">{projects.filter((_, i) => i % 2 === 0).map(renderCard)}</div>
+              <div className="flex-1 flex flex-col gap-(--spacing-gutter)">{projects.filter((_, i) => i % 2 === 1).map(renderCard)}</div>
+            </div>
+            <div className={col3}>
+              <div className="flex-1 flex flex-col gap-(--spacing-gutter)">{projects.filter((_, i) => i % 3 === 0).map(renderCard)}</div>
+              <div className="flex-1 flex flex-col gap-(--spacing-gutter)">{projects.filter((_, i) => i % 3 === 1).map(renderCard)}</div>
+              <div className="flex-1 flex flex-col gap-(--spacing-gutter)">{projects.filter((_, i) => i % 3 === 2).map(renderCard)}</div>
+            </div>
+          </>
+        );
+      })()}
 
       {/* Archive: all screens for sharp, desktop-only for rounded */}
       {isArchive && (

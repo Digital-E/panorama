@@ -44,8 +44,8 @@ export const demoProfile: Profile = {
           type: "media-swipe",
           data: {
             images: [
-              { src: "/swipe-1.jpg", width: 1224, height: 816, alt: "Two models on grass" },
-              { src: "/swipe-2.png", width: 960, height: 1200, alt: "Model on stacked chair at beach" },
+              { src: "/swipe-1.jpg", width: 1080, height: 1350, alt: "Two models on grass" },
+              { src: "/swipe-2.png", width: 1714, height: 1368, alt: "Model on stacked chair at beach" },
               { src: "/swipe-3.jpg", width: 960, height: 1200, alt: "Model in grey sweater on leather chair" },
             ],
           },
@@ -237,7 +237,7 @@ export const demoProfile: Profile = {
       title: "Motion Study I",
       year: 2022,
       cover: { src: "/project-1.jpg", width: 1600, height: 2000, alt: "Motion Study I" },
-      coverVideo: { src: "/vid1.mp4" },
+      coverVideo: { src: "/vid1.mp4", poster: "/vid1-poster.jpg" },
       blocks: [
         {
           id: "ms1b1",
@@ -254,7 +254,7 @@ export const demoProfile: Profile = {
       title: "Motion Study II",
       year: 2022,
       cover: { src: "/project-2.jpg", width: 1600, height: 1200, alt: "Motion Study II" },
-      coverVideo: { src: "/vid2.mp4" },
+      coverVideo: { src: "/vid2.mp4", poster: "/vid2-poster.jpg" },
       blocks: [
         {
           id: "ms2b1",
@@ -271,7 +271,7 @@ export const demoProfile: Profile = {
       title: "Motion Study III",
       year: 2021,
       cover: { src: "/project-3.jpg", width: 1600, height: 1300, alt: "Motion Study III" },
-      coverVideo: { src: "/vid3.mp4" },
+      coverVideo: { src: "/vid3.mp4", poster: "/vid3-poster.jpg" },
       blocks: [
         {
           id: "ms3b1",
