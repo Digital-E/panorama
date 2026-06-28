@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Toast } from "@base-ui/react/toast";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Keyboard, Mousewheel } from "swiper/modules";
@@ -56,6 +56,11 @@ function LightboxContent({ images, index, originRect, onIndexChange, onClose }: 
   const [current, setCurrent] = useState(index);
   const [infoOpen, setInfoOpen] = useState(false);
   const initial = useRef(index).current;
+  // Rotate images so the selected image is already at position 0.
+  // Swiper starts at initialSlide={0} and never needs to reposition,
+  // eliminating the flash of slide 0 that loop-mode repositioning causes.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const rotated = useMemo(() => [...images.slice(initial), ...images.slice(0, initial)], []);
   const closing = useRef(false);
   const drag = useRef({ active: false, decided: false, vertical: false, startX: 0, startY: 0, lastY: 0, lastT: 0, vy: 0 });
 
@@ -314,21 +319,22 @@ function LightboxContent({ images, index, originRect, onIndexChange, onClose }: 
           keyboard={{ enabled: true }}
           mousewheel={{ forceToAxis: true, thresholdTime: 0 }}
           loop={many}
-          initialSlide={initial}
+          initialSlide={0}
           speed={SPEED}
           className="lightbox-swiper"
           style={{ position: "absolute", inset: 0 }}
           onSwiper={(s) => { swiperRef.current = s; }}
           onSlideChange={(s) => {
             if (closing.current) return;
-            setCurrent(s.realIndex);
-            onIndexChange(s.realIndex);
+            const orig = (s.realIndex + initial) % n;
+            setCurrent(orig);
+            onIndexChange(orig);
           }}
         >
-          {images.map((im, i) => (
+          {rotated.map((im, i) => (
             <SwiperSlide key={i} className="lightbox-slide">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={im.src} alt={im.alt} draggable={false} className="max-h-full w-full object-contain" />
+              <img src={im.src} alt={im.alt} draggable={false} loading={i === 0 ? "eager" : "lazy"} className="max-h-full w-full object-contain" />
             </SwiperSlide>
           ))}
         </Swiper>
@@ -359,7 +365,7 @@ function LightboxContent({ images, index, originRect, onIndexChange, onClose }: 
                   <Toast.Root
                     key={toast.id}
                     toast={toast}
-                    onClick={() => swiperRef.current?.slideToLoop((toast as any).imageIndex)}
+                    onClick={() => swiperRef.current?.slideToLoop(((toast as any).imageIndex - initial + n) % n)}
                     className="toast-item cursor-pointer rounded-2xl bg-[rgba(44,44,46,0.92)] backdrop-blur-xl border border-white/10 shadow-2xl"
                   >
                     <Toast.Content className="toast-content p-3 flex flex-row items-start gap-3">
