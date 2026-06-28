@@ -83,7 +83,7 @@ export function SwiperCarousel({ data }: { data: Data }) {
                 fill
                 draggable={false}
                 sizes="(min-width: 600px) 600px, 100vw"
-                className="object-cover"
+                className="object-contain"
                 priority={i === 0}
               />
             </div>

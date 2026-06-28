@@ -235,7 +235,6 @@ export function SwipeCard({ data }: { data: Data }) {
         <Lightbox
           images={data.images}
           index={lightbox}
-          caption={data.caption}
           onIndexChange={setLightbox}
           onClose={() => setLightbox(null)}
         />

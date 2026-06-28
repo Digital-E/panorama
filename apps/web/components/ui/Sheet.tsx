@@ -300,7 +300,7 @@ export function Sheet({
           />
         </div>
 
-        <div className="h-px shrink-0 bg-surface-edge" />
+        <div className="h-px shrink-0 bg-[rgba(255,255,255,0.03)]" />
 
         <div className="min-h-0 overflow-y-auto px-6 pb-12 pt-8">
           <h2 className="text-lg font-medium">{title}</h2>

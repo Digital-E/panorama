@@ -226,10 +226,23 @@ export function HomeMenu({ profile }: { profile: Profile }) {
     }, 400);
   };
 
-  const tabClass = (active: boolean) =>
-    `px-[15px] py-[10px] text-[15px] rounded-[10px] transition-colors duration-150 cursor-pointer ${
-      active ? "bg-[#373737] text-ink" : "text-ink-muted hover:text-ink"
-    }`;
+  const tabs = (
+    [
+      { key: "biography"  as CardPage, label: "Biography",   show: !!profile.biography },
+      { key: "experience" as CardPage, label: "Experience",  show: profile.experience.length > 0 },
+      { key: "contact"    as CardPage, label: "Contact",     show: profile.contactEnabled },
+    ] as const
+  ).filter((t) => t.show);
+
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
+  const [pill, setPill] = useState({ left: 0, width: 0, ready: false });
+
+  useEffect(() => {
+    if (!showCard) return;
+    const idx = tabs.findIndex((t) => t.key === cardPage);
+    const btn = tabRefs.current[idx];
+    if (btn) setPill({ left: btn.offsetLeft, width: btn.offsetWidth, ready: true });
+  }, [cardPage, showCard]);
 
   return (
     <>
@@ -291,24 +304,28 @@ export function HomeMenu({ profile }: { profile: Profile }) {
             />
           </div>
 
-          {/* Tab bar — gray background */}
+          {/* Tab bar — sliding pill */}
           <div className="shrink-0 px-6 pb-4">
-            <div className="mx-auto flex w-fit items-center gap-1 rounded-[15px] bg-[#232428] p-[10px]">
-              {profile.biography && (
-                <button onClick={() => setCardPage("biography")} className={tabClass(cardPage === "biography")}>
-                  Biography
-                </button>
+            <div className="relative mx-auto flex w-fit items-center gap-1 rounded-[15px] bg-[#232428] p-[10px]">
+              {/* Sliding background pill */}
+              {pill.ready && (
+                <div
+                  className="pointer-events-none absolute top-[10px] bottom-[10px] rounded-[10px] bg-[#373737] transition-all duration-200 ease-out"
+                  style={{ left: pill.left, width: pill.width }}
+                />
               )}
-              {profile.experience.length > 0 && (
-                <button onClick={() => setCardPage("experience")} className={tabClass(cardPage === "experience")}>
-                  Experience
+              {tabs.map((tab, i) => (
+                <button
+                  key={tab.key}
+                  ref={(el) => { tabRefs.current[i] = el; }}
+                  onClick={() => setCardPage(tab.key)}
+                  className={`relative z-10 px-[15px] py-[10px] text-[15px] rounded-[10px] cursor-pointer transition-colors duration-150 ${
+                    cardPage === tab.key ? "text-ink" : "text-ink-muted hover:text-ink"
+                  }`}
+                >
+                  {tab.label}
                 </button>
-              )}
-              {profile.contactEnabled && (
-                <button onClick={() => setCardPage("contact")} className={tabClass(cardPage === "contact")}>
-                  Contact
-                </button>
-              )}
+              ))}
             </div>
           </div>
 
