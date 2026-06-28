@@ -23,7 +23,7 @@ export function ListProjectCard({
         rounded ? (
           <div className="shrink-0 w-10 h-10 overflow-hidden rounded-[3px]">
             {project.coverVideo ? (
-              <FadeVideo src={project.coverVideo.src} autoPlay muted loop playsInline className="max-w-full max-h-full transition-opacity duration-300 group-hover:opacity-70" />
+              <FadeVideo src={project.coverVideo.src} poster={project.cover.src} autoPlay muted loop playsInline className="max-w-full max-h-full transition-opacity duration-300 group-hover:opacity-70" />
             ) : (
               <FadeImage
                 src={project.cover.src}
