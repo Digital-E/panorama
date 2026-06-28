@@ -131,27 +131,32 @@ function LightboxContent({ images, index, originRect, onIndexChange, onClose }: 
     const dialog  = dialogRef.current;
     const stage   = stageRef.current;
     const overlay = overlayRef.current;
+
+    // Pin stage to its starting position and hide overlay before showModal so
+    // any paint triggered by showModal() shows the correct initial state instead
+    // of a full-screen flash of whatever slide Swiper rendered first.
+    const from = originRect
+      ? flipTransform(originRect)
+      : `translateY(${window.innerHeight}px) scale(0.8)`;
+    if (stage) stage.style.transform = from;
+    if (overlay) overlay.style.opacity = "0";
+
     dialog?.showModal();
-    if (originRect && stage) {
-      const from = flipTransform(originRect);
-      stage.animate(
+
+    if (stage) {
+      const anim = stage.animate(
         [{ transform: from }, { transform: "none" }],
         { duration: OPEN_DUR, easing: EASING, fill: "none" },
       );
-      overlay?.animate(
-        [{ opacity: "0" }, { opacity: "1" }],
-        { duration: OPEN_DUR, easing: "ease", fill: "none" },
-      );
-    } else if (stage) {
-      const vh = window.innerHeight;
-      stage.animate(
-        [{ transform: `translateY(${vh}px) scale(0.8)` }, { transform: "none" }],
-        { duration: OPEN_DUR, easing: EASING, fill: "none" },
-      );
-      overlay?.animate(
-        [{ opacity: "0" }, { opacity: "1" }],
-        { duration: OPEN_DUR, easing: "ease", fill: "none" },
-      );
+      // Clear inline style after animation so drag gestures take over cleanly.
+      anim.onfinish = () => { if (stageRef.current) stageRef.current.style.transform = ""; };
+    }
+    const overlayAnim = overlay?.animate(
+      [{ opacity: "0" }, { opacity: "1" }],
+      { duration: OPEN_DUR, easing: "ease", fill: "none" },
+    );
+    if (overlayAnim) {
+      overlayAnim.onfinish = () => { if (overlayRef.current) overlayRef.current.style.opacity = ""; };
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
