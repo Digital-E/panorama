@@ -2,13 +2,12 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Keyboard, Mousewheel, Zoom } from "swiper/modules";
+import { Keyboard, Mousewheel } from "swiper/modules";
 import type { Swiper as SwiperClass } from "swiper";
 import type { ImageAsset } from "@portfolio/schema";
 import { GlassPill } from "@/components/ui/GlassPill";
 
 import "swiper/css";
-import "swiper/css/zoom";
 
 const SPEED = 320;
 const DISMISS_DY = 120;
@@ -39,8 +38,7 @@ type Props = {
 export function Lightbox({ images, index, originRect, onIndexChange, onExpand, onClose }: Props) {
   const dialogRef   = useRef<HTMLDialogElement>(null);
   const focusTrapRef = useRef<HTMLDivElement>(null);
-  const swiperRef      = useRef<SwiperClass | null>(null);
-  const thumbsSwiperRef = useRef<SwiperClass | null>(null);
+  const swiperRef   = useRef<SwiperClass | null>(null);
   const stageRef    = useRef<HTMLDivElement>(null);
   const overlayRef  = useRef<HTMLDivElement>(null);
   const chromeRef   = useRef<HTMLDivElement>(null);
@@ -312,7 +310,7 @@ export function Lightbox({ images, index, originRect, onIndexChange, onExpand, o
     if (!d.decided) {
       if (Math.abs(dx) < 8 && Math.abs(dy) < 8) return;
       d.decided = true;
-      d.vertical = dy > 0 && Math.abs(dy) > Math.abs(dx) && (swiperRef.current?.zoom?.scale ?? 1) <= 1;
+      d.vertical = dy > 0 && Math.abs(dy) > Math.abs(dx);
       if (d.vertical) {
         (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
         if (swiperRef.current) swiperRef.current.allowTouchMove = false;
@@ -407,8 +405,7 @@ export function Lightbox({ images, index, originRect, onIndexChange, onExpand, o
         style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, touchAction: "none", willChange: "transform" }}
       >
         <Swiper
-          modules={[Keyboard, Mousewheel, Zoom]}
-          zoom={{ maxRatio: 4 }}
+          modules={[Keyboard, Mousewheel]}
           keyboard={{ enabled: true }}
           mousewheel={{ forceToAxis: true, thresholdTime: 0 }}
           loop={many}
@@ -423,29 +420,26 @@ export function Lightbox({ images, index, originRect, onIndexChange, onExpand, o
             const orig = (s.realIndex + initial) % n;
             setCurrent(orig);
             onIndexChange(orig);
-            thumbsSwiperRef.current?.slideTo(orig);
           }}
         >
           {rotated.map((im, i) => (
             <SwiperSlide key={i} className="lightbox-slide" style={{ position: "relative" }}>
-              <div className="swiper-zoom-container">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={im.src}
-                  alt={im.alt}
-                  draggable={false}
-                  loading={i === 0 ? "eager" : "lazy"}
-                  ref={i === 0 ? undefined : (el) => {
-                    if (!el || el.complete) return;
-                    el.style.opacity = "0";
-                    el.addEventListener("load", () => {
-                      el.style.transition = "opacity 0.25s ease";
-                      el.style.opacity = "1";
-                    }, { once: true });
-                  }}
-                  className="max-h-full w-full object-contain"
-                />
-              </div>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={im.src}
+                alt={im.alt}
+                draggable={false}
+                loading={i === 0 ? "eager" : "lazy"}
+                ref={i === 0 ? undefined : (el) => {
+                  if (!el || el.complete) return;
+                  el.style.opacity = "0";
+                  el.addEventListener("load", () => {
+                    el.style.transition = "opacity 0.25s ease";
+                    el.style.opacity = "1";
+                  }, { once: true });
+                }}
+                className="max-h-full w-full object-contain"
+              />
             </SwiperSlide>
           ))}
         </Swiper>
@@ -453,48 +447,32 @@ export function Lightbox({ images, index, originRect, onIndexChange, onExpand, o
 
       <div ref={chromeRef} className="pointer-events-none absolute inset-0 z-10">
       <div className={`transition-opacity duration-300 ${controlsVisible ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
-        {/* Top bar — alt text left, close right */}
-        <div className="pointer-events-auto absolute top-4 flex items-center justify-between" style={barStyle}>
-          {images[current]?.alt ? (
-            <GlassPill className="px-4 py-3 max-w-[60vw]">
-              <MarqueeText text={images[current].alt} />
-            </GlassPill>
-          ) : <span />}
+        {/* Top bar — close right */}
+        <div className="pointer-events-auto absolute top-4 flex items-center justify-end" style={barStyle}>
           <button onClick={handleClose} aria-label="Close" className={btn}>
             <Cross />
           </button>
         </div>
 
-        {/* Bottom — thumbnail strip */}
-        {many && (
-          <div
-            className="pointer-events-auto absolute bottom-0 inset-x-0 pb-8 pt-2"
-            onMouseEnter={pauseInactivityTimer}
-            onMouseLeave={resumeInactivityTimer}
-          >
-            <Swiper
-              onSwiper={(s) => { thumbsSwiperRef.current = s; }}
-              initialSlide={index}
-              spaceBetween={8}
-              slidesPerView="auto"
-              centerInsufficientSlides
-              className="thumbs-swiper"
-              style={{ paddingInline: "8px" }}
-            >
-              {images.map((im, i) => (
-                <SwiperSlide key={i} style={{ width: "auto" }} onClick={() => swiperRef.current?.slideToLoop((i - initial + n) % n, 0)}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={im.src}
-                    alt={im.alt}
-                    draggable={false}
-                    className={`h-14 w-auto object-cover rounded-lg cursor-pointer transition-opacity ${i === current ? "opacity-100" : "opacity-40"}`}
-                  />
-                </SwiperSlide>
-              ))}
-            </Swiper>
+        {/* Bottom bar — index left, alt text center, nav buttons right */}
+        <div className="pointer-events-auto absolute bottom-0 inset-x-0">
+          <div className="flex items-center justify-between px-6 pb-8 pt-2">
+            {many ? (
+              <GlassPill className="px-4 py-3 tabular-nums shrink-0">{current + 1} / {n}</GlassPill>
+            ) : <span />}
+            {images[current]?.alt && (
+              <GlassPill className="px-4 py-3 mx-3 max-w-[40vw]">
+                <MarqueeText text={images[current].alt} />
+              </GlassPill>
+            )}
+            {many ? (
+              <div className="flex gap-2 shrink-0">
+                <button onClick={() => swiperRef.current?.slidePrev()} onMouseEnter={pauseInactivityTimer} onMouseLeave={resumeInactivityTimer} aria-label="Previous image" className={btn}><Chevron flip /></button>
+                <button onClick={() => swiperRef.current?.slideNext()} onMouseEnter={pauseInactivityTimer} onMouseLeave={resumeInactivityTimer} aria-label="Next image" className={btn}><Chevron /></button>
+              </div>
+            ) : <span />}
           </div>
-        )}
+        </div>
       </div>
       </div>
     </dialog>
@@ -556,3 +534,11 @@ function MarqueeText({ text }: { text: string }) {
   );
 }
 
+function Chevron({ flip = false }: { flip?: boolean }) {
+  return (
+    <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden
+      style={flip ? { transform: "scaleX(-1)" } : undefined}>
+      <path d="M6.5 3.5L12 9l-5.5 5.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}

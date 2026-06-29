@@ -1,14 +1,32 @@
 "use client";
 
 import NextImage, { type ImageProps } from "next/image";
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
+
+// Persists across client-side navigations — once a URL has loaded, skip the fade.
+const loadedUrls = new Set<string>();
 
 export function FadeImage({ className = "", onLoad, ...props }: ImageProps) {
-  const [loaded, setLoaded] = useState(false);
+  const src = typeof props.src === "string" ? props.src : "";
+  const [loaded, setLoaded] = useState(() => loadedUrls.has(src));
+  const imgRef = useRef<HTMLImageElement>(null);
+
+  useLayoutEffect(() => {
+    if (imgRef.current?.complete) {
+      setLoaded(true);
+      if (src) loadedUrls.add(src);
+    }
+  }, [src]);
+
   return (
     <NextImage
       {...props}
-      onLoad={(e) => { setLoaded(true); onLoad?.(e); }}
+      ref={imgRef}
+      onLoad={(e) => {
+        setLoaded(true);
+        if (src) loadedUrls.add(src);
+        onLoad?.(e);
+      }}
       className={`transition-opacity duration-500 ${loaded ? "opacity-100" : "opacity-0"} ${className}`}
     />
   );
