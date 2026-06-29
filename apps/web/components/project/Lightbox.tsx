@@ -151,17 +151,22 @@ function LightboxContent({ images, index, originRect, onIndexChange, onClose }: 
     if (stage) {
       const anim = stage.animate(
         [{ transform: from }, { transform: "none" }],
-        { duration: OPEN_DUR, easing: EASING, fill: "none" },
+        { duration: OPEN_DUR, easing: EASING, fill: "forwards" },
       );
-      // Clear inline style after animation so drag gestures take over cleanly.
-      anim.onfinish = () => { if (stageRef.current) stageRef.current.style.transform = ""; };
+      anim.onfinish = () => {
+        if (stageRef.current) stageRef.current.style.transform = "";
+        anim.cancel();
+      };
     }
     const overlayAnim = overlay?.animate(
       [{ opacity: "0" }, { opacity: "1" }],
-      { duration: OPEN_DUR, easing: "ease", fill: "none" },
+      { duration: OPEN_DUR, easing: "ease", fill: "forwards" },
     );
     if (overlayAnim) {
-      overlayAnim.onfinish = () => { if (overlayRef.current) overlayRef.current.style.opacity = ""; };
+      overlayAnim.onfinish = () => {
+        if (overlayRef.current) overlayRef.current.style.opacity = "";
+        overlayAnim.cancel();
+      };
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -303,7 +308,7 @@ function LightboxContent({ images, index, originRect, onIndexChange, onClose }: 
       aria-label="Image viewer"
       className="fixed inset-x-0 top-0 bottom-auto m-0 h-[100dvh] w-full max-w-none overflow-hidden bg-transparent p-0 backdrop:hidden"
     >
-      <div ref={overlayRef} className="absolute inset-0 bg-black backdrop-blur-2xl" />
+      <div ref={overlayRef} className="absolute inset-0 bg-black" style={{ willChange: "opacity" }} />
 
       <div
         ref={stageRef}
@@ -312,7 +317,7 @@ function LightboxContent({ images, index, originRect, onIndexChange, onClose }: 
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, touchAction: "none" }}
+        style={{ position: "absolute", left: 0, right: 0, top: 0, bottom: 0, touchAction: "none", willChange: "transform" }}
       >
         <Swiper
           modules={[Keyboard, Mousewheel]}
@@ -334,7 +339,21 @@ function LightboxContent({ images, index, originRect, onIndexChange, onClose }: 
           {rotated.map((im, i) => (
             <SwiperSlide key={i} className="lightbox-slide">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={im.src} alt={im.alt} draggable={false} loading={i === 0 ? "eager" : "lazy"} className="max-h-full w-full object-contain" />
+              <img
+                src={im.src}
+                alt={im.alt}
+                draggable={false}
+                loading={i === 0 ? "eager" : "lazy"}
+                ref={(el) => {
+                  if (!el || el.complete) return;
+                  el.style.opacity = "0";
+                  el.addEventListener("load", () => {
+                    el.style.transition = "opacity 0.25s ease";
+                    el.style.opacity = "1";
+                  }, { once: true });
+                }}
+                className="max-h-full w-full object-contain"
+              />
             </SwiperSlide>
           ))}
         </Swiper>

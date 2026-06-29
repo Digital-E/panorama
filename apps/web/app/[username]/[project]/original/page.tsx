@@ -56,7 +56,7 @@ export default async function ProjectOriginalPage({ params }: Props) {
 
   return (
     <div data-page="project" className="min-h-dvh bg-(--color-canvas)">
-      <div className="flex flex-col gap-(--spacing-gutter) p-(--spacing-gutter)">
+      <div className="flex flex-col gap-(--spacing-gutter) px-(--spacing-gutter-x) py-(--spacing-gutter)">
 
         {/* Sticky header */}
         <header className="sticky top-0 z-50 -mx-(--spacing-gutter) -mt-(--spacing-gutter) px-(--spacing-gutter) pt-(--spacing-gutter)">

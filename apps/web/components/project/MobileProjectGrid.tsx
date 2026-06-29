@@ -37,6 +37,7 @@ export function MobileProjectGrid({ images }: { images: ImageAsset[] }) {
     <button
       key={i}
       ref={(el) => { btnRefs.current[i] = el; }}
+      onPointerDown={() => { new window.Image().src = img.src; }}
       onClick={() => open(i)}
       className="block w-full cursor-pointer"
       style={{ opacity: hiddenIndex === i ? 0 : 1 }}

@@ -64,7 +64,7 @@ export default async function ProjectPage({ params }: Props) {
           </Link>
         </div>
 
-        <main className="flex flex-col gap-(--spacing-gutter) p-(--spacing-gutter) pt-5 md:pl-[250px] md:pr-[150px]">
+        <main className="flex flex-col gap-(--spacing-gutter) px-(--spacing-gutter-x) py-(--spacing-gutter) pt-5 md:pl-[250px] md:pr-[150px]">
           <ProjectGallery images={galleryImages} title={project.title} year={project.year} />
         </main>
       </div>

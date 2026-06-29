@@ -46,7 +46,7 @@ export default async function ProfilePage({ params }: Props) {
   return (
     <>
       <HomeMenu profile={profile} />
-      <main className="flex flex-col gap-(--spacing-gutter) p-(--spacing-gutter) pt-5 md:pl-[250px] md:pr-[150px]">
+      <main className="flex flex-col gap-(--spacing-gutter) px-(--spacing-gutter-x) py-[10px] md:py-(--spacing-gutter) md:pl-[250px] md:pr-[150px]">
         <div className="flex flex-col gap-(--spacing-gutter) md:hidden">
           <HeroCard profile={profile} />
           <SectionsNav profile={profile} />
@@ -64,7 +64,7 @@ export default async function ProfilePage({ params }: Props) {
         <img
           src="/Panorama-logo-1.svg"
           alt="Panorama"
-          className="w-full my-[10px]"
+          className="w-full my-[10px] px-[10px] md:px-0"
         />
       </main>
     </>
