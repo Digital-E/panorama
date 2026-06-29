@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Toast } from "@base-ui/react/toast";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Keyboard, Mousewheel } from "swiper/modules";
 import type { Swiper as SwiperClass } from "swiper";
@@ -32,32 +31,21 @@ type Props = {
   index: number;
   originRect?: DOMRect | null;
   onIndexChange: (i: number) => void;
+  onExpand?: () => void;
   onClose: () => void;
-  onReady?: () => void;
 };
 
-export function Lightbox(props: Props) {
-  return (
-    <Toast.Provider limit={3}>
-      <LightboxContent {...props} />
-    </Toast.Provider>
-  );
-}
-
-function LightboxContent({ images, index, originRect, onIndexChange, onClose, onReady }: Props) {
-  const { toasts, add: addToast, close: closeToast } = Toast.useToastManager();
-
+export function Lightbox({ images, index, originRect, onIndexChange, onExpand, onClose }: Props) {
   const dialogRef   = useRef<HTMLDialogElement>(null);
   const focusTrapRef = useRef<HTMLDivElement>(null);
   const swiperRef   = useRef<SwiperClass | null>(null);
   const stageRef    = useRef<HTMLDivElement>(null);
   const overlayRef  = useRef<HTMLDivElement>(null);
   const chromeRef   = useRef<HTMLDivElement>(null);
-  const firstImgRef = useRef<HTMLImageElement | null>(null);
   const n = images.length;
   const many = n > 1;
   const [current, setCurrent] = useState(index);
-  const [infoOpen, setInfoOpen] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(true);
   const initial = useRef(index).current;
   // Rotate images so the selected image is already at position 0.
   // Swiper starts at initialSlide={0} and never needs to reposition,
@@ -66,46 +54,38 @@ function LightboxContent({ images, index, originRect, onIndexChange, onClose, on
   const rotated = useMemo(() => [...images.slice(initial), ...images.slice(0, initial)], []);
   const closing = useRef(false);
   const drag = useRef({ active: false, decided: false, vertical: false, startX: 0, startY: 0, lastY: 0, lastT: 0, vy: 0 });
+  const lastPointerType = useRef<string>("touch");
+  const inactivityTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
-  const showToast = (imageIndex: number, alt: string) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    addToast({ title: `Image ${imageIndex + 1}`, description: alt, timeout: 0, imageIndex } as any);
+  const resetInactivityTimer = () => {
+    clearTimeout(inactivityTimer.current);
+    setControlsVisible(true);
+    inactivityTimer.current = setTimeout(() => setControlsVisible(false), 1000);
   };
 
-  const hideToast = () => {
-    toasts.forEach((t) => closeToast(t.id));
-  };
+  const overButton = useRef(false);
+  const pauseInactivityTimer = () => { overButton.current = true; clearTimeout(inactivityTimer.current); };
+  const resumeInactivityTimer = () => { overButton.current = false; resetInactivityTimer(); };
 
-  const toggleInfo = () => {
-    const alt = images[current]?.alt;
-    if (!alt) return;
-    if (infoOpen) {
-      hideToast();
-      setInfoOpen(false);
-    } else {
-      showToast(current, alt);
-      setInfoOpen(true);
-    }
-  };
-
-  // Add a new toast when swiping to a new image while info is open
-  useEffect(() => {
-    if (!infoOpen) return;
-    const alt = images[current]?.alt;
-    if (alt) showToast(current, alt);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [current]);
+  // Clean up inactivity timer on unmount
+  useEffect(() => () => clearTimeout(inactivityTimer.current), []);
 
   // Close via button / Escape — animate back to origin thumbnail
   const handleClose = () => {
     if (closing.current) return;
     closing.current = true;
-    hideToast();
     const stage   = stageRef.current;
     const overlay = overlayRef.current;
     const chrome  = chromeRef.current;
     if (originRect && stage) {
       const to = flipTransform(originRect);
+      const closeScale = originRect.width / window.innerWidth;
+      const imgEl = (swiperRef.current?.el?.querySelector(".swiper-slide-active img") ?? null) as HTMLImageElement | null;
+      if (imgEl && closeScale > 0) {
+        imgEl.style.transition = `border-radius 80ms ease-in`;
+        imgEl.getBoundingClientRect();
+        imgEl.style.borderRadius = `${14 / closeScale}px`;
+      }
       const anim = stage.animate(
         [{ transform: "none" }, { transform: to }],
         { duration: CLOSE_DUR, easing: EASING, fill: "forwards" },
@@ -130,92 +110,106 @@ function LightboxContent({ images, index, originRect, onIndexChange, onClose, on
   const handleSwipeDismiss = () => {
     if (closing.current) return;
     closing.current = true;
-    hideToast();
     onClose();
   };
 
   // Show modal + entry FLIP animation
   useEffect(() => {
-    const dialog  = dialogRef.current;
-    const stage   = stageRef.current;
-    const overlay = overlayRef.current;
+    const dialog = dialogRef.current;
+    const stage  = stageRef.current;
 
     const from = originRect
       ? flipTransform(originRect)
       : `translateY(${window.innerHeight}px) scale(0.8)`;
 
-    // Use opacity:0 (not visibility:hidden) so the GPU still rasterizes the
-    // stage while it's invisible — prevents the iOS Safari compositing-layer
-    // texture-upload flash when the stage first becomes visible.
+    // Hide before showModal to prevent iOS Safari's first-frame flash at
+    // the element's natural (full-screen) position.
     if (stage) { stage.style.transform = from; stage.style.opacity = "0"; }
-    if (overlay) overlay.style.opacity = "0";
+    if (overlayRef.current) overlayRef.current.style.opacity = "0";
     if (chromeRef.current) chromeRef.current.style.opacity = "0";
 
     dialog?.showModal();
-    onReady?.();
     focusTrapRef.current?.focus({ preventScroll: true });
 
-    let animated = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
+    let cancelled = false;
+    let expandTimer: ReturnType<typeof setTimeout> | undefined;
 
-    const startAnim = () => {
-      if (animated) return;
-      animated = true;
-      clearTimeout(timer);
-      requestAnimationFrame(() => {
-        if (stageRef.current) stageRef.current.style.opacity = "";
+    // One rAF lets iOS Safari settle its first top-layer paint before we
+    // reveal the stage. After that the thumbnail is visible for 10ms,
+    // then the FLIP expand runs.
+    // Scaled border-radius so the stage looks like the thumbnail's 14px
+    // rounded corners during the pause and smoothly opens to sharp edges.
+    const scale = originRect ? originRect.width / window.innerWidth : 0;
+    const startRadius = scale > 0 ? `${14 / scale}px` : "0px";
 
-        const stageEl   = stageRef.current;
-        const overlayEl = overlayRef.current;
-        const chromeEl  = chromeRef.current;
+    // Helper: get the <img> from a specific slide (border-radius on <img>
+    // clips its own painted content directly — no overflow:hidden needed).
+    const getSlideImg = (selector: string) =>
+      (swiperRef.current?.el?.querySelector(selector) ?? null) as HTMLImageElement | null;
 
-        if (stageEl) {
-          const anim = stageEl.animate(
-            [{ transform: from }, { transform: "none" }],
-            { duration: OPEN_DUR, easing: EASING, fill: "forwards" },
+    requestAnimationFrame(() => {
+      if (cancelled) return;
+
+      if (stageRef.current) stageRef.current.style.opacity = "";
+
+      // Round the first slide's image to match the thumbnail's 14px corners
+      const imgEl = getSlideImg(".swiper-slide img");
+      if (imgEl && scale > 0) imgEl.style.borderRadius = startRadius;
+
+      const overlayEl = overlayRef.current;
+
+      // Expand after pause — overlay fades in together with the FLIP
+      expandTimer = setTimeout(() => {
+        onExpand?.();
+
+        requestAnimationFrame(() => {
+          const stageEl  = stageRef.current;
+          const chromeEl = chromeRef.current;
+
+          // Transition the image's border-radius open with ease-out
+          if (imgEl && scale > 0) {
+            imgEl.style.transition = `border-radius 80ms ease-out`;
+            imgEl.getBoundingClientRect();
+            imgEl.style.borderRadius = "0px";
+          }
+
+          if (stageEl) {
+            const anim = stageEl.animate(
+              [{ transform: from }, { transform: "none" }],
+              { duration: OPEN_DUR, easing: EASING, fill: "forwards" },
+            );
+            anim.onfinish = () => {
+              if (stageRef.current) stageRef.current.style.transform = "";
+              if (imgEl) { imgEl.style.transition = ""; imgEl.style.borderRadius = ""; }
+              anim.cancel();
+              if (window.matchMedia("(hover: hover)").matches) resetInactivityTimer();
+            };
+          }
+          const overlayAnim = overlayEl?.animate(
+            [{ opacity: "0" }, { opacity: "1" }],
+            { duration: OPEN_DUR, easing: "ease", fill: "forwards" },
           );
-          anim.onfinish = () => {
-            if (stageRef.current) stageRef.current.style.transform = "";
-            anim.cancel();
-          };
-        }
-        const overlayAnim = overlayEl?.animate(
-          [{ opacity: "0" }, { opacity: "1" }],
-          { duration: OPEN_DUR, easing: "ease", fill: "forwards" },
-        );
-        if (overlayAnim) {
-          overlayAnim.onfinish = () => {
-            if (overlayRef.current) overlayRef.current.style.opacity = "";
-            overlayAnim.cancel();
-          };
-        }
-        const chromeAnim = chromeEl?.animate(
-          [{ opacity: "0" }, { opacity: "1" }],
-          { duration: OPEN_DUR, easing: "ease", fill: "forwards" },
-        );
-        if (chromeAnim) {
-          chromeAnim.onfinish = () => {
-            if (chromeRef.current) chromeRef.current.style.opacity = "";
-            chromeAnim.cancel();
-          };
-        }
-      });
-    };
+          if (overlayAnim) {
+            overlayAnim.onfinish = () => {
+              if (overlayRef.current) overlayRef.current.style.opacity = "";
+              overlayAnim.cancel();
+            };
+          }
+          const chromeAnim = chromeEl?.animate(
+            [{ opacity: "0" }, { opacity: "1" }],
+            { duration: OPEN_DUR, easing: "ease", fill: "forwards" },
+          );
+          if (chromeAnim) {
+            chromeAnim.onfinish = () => {
+              if (chromeRef.current) chromeRef.current.style.opacity = "";
+              chromeAnim.cancel();
+            };
+          }
+        });
+      }, 10);
+    });
 
-    // Wait for the first image to decode before starting the FLIP so it's
-    // visible throughout the animation. The lightbox loads the original src
-    // while the masonry grid loads an optimized Next.js Image URL — different
-    // URLs mean the original may not be in cache. 500ms cap prevents blocking
-    // indefinitely on slow connections (image will just pop in mid-FLIP).
-    const firstImg = firstImgRef.current;
-    if (!firstImg || firstImg.complete) {
-      startAnim();
-    } else {
-      timer = setTimeout(startAnim, 500);
-      firstImg.decode().then(startAnim).catch(startAnim);
-    }
-
-    return () => { animated = true; clearTimeout(timer); };
+    return () => { cancelled = true; clearTimeout(expandTimer); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -250,6 +244,29 @@ function LightboxContent({ images, index, originRect, onIndexChange, onClose, on
     return () => document.removeEventListener("touchmove", prevent, { capture: true } as EventListenerOptions);
   }, []);
 
+  // Trackpad swipe-down to dismiss — accumulate deltaY, dismiss past threshold
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog) return;
+    let accumulated = 0;
+    let resetTimer: ReturnType<typeof setTimeout> | undefined;
+    const onWheel = (e: WheelEvent) => {
+      if (closing.current) return;
+      if (e.deltaY >= 0 || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
+      accumulated += -e.deltaY;
+      clearTimeout(resetTimer);
+      resetTimer = setTimeout(() => { accumulated = 0; }, 300);
+      if (accumulated > 200) {
+        accumulated = 0;
+        clearTimeout(resetTimer);
+        handleClose();
+      }
+    };
+    dialog.addEventListener("wheel", onWheel, { passive: true });
+    return () => { dialog.removeEventListener("wheel", onWheel); clearTimeout(resetTimer); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function paint(dy: number) {
     const d = Math.max(dy, 0);
     const p = Math.min(d / ((window.innerHeight || 800) * 0.45), 1);
@@ -267,12 +284,22 @@ function LightboxContent({ images, index, originRect, onIndexChange, onClose, on
   }
 
   const onStageClick = (e: React.MouseEvent) => {
-    if (!many || drag.current.decided) return;
-    e.clientX > window.innerWidth / 2 ? swiperRef.current?.slideNext() : swiperRef.current?.slidePrev();
+    if (drag.current.decided) return;
+    if (lastPointerType.current === "mouse") {
+      if (!many) return;
+      e.clientX > window.innerWidth / 2 ? swiperRef.current?.slideNext() : swiperRef.current?.slidePrev();
+    } else {
+      setControlsVisible((v) => !v);
+    }
   };
 
   const onPointerDown = (e: React.PointerEvent) => {
+    lastPointerType.current = e.pointerType;
     drag.current = { active: true, decided: false, vertical: false, startX: e.clientX, startY: e.clientY, lastY: e.clientY, lastT: Date.now(), vy: 0 };
+  };
+
+  const onDialogMouseMove = () => {
+    if (!overButton.current) resetInactivityTimer();
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
@@ -316,6 +343,13 @@ function LightboxContent({ images, index, originRect, onIndexChange, onClose, on
       if (chrome)  chrome.style.transition  = "none";
 
       if (originRect && stage) {
+        const closeScale = originRect.width / window.innerWidth;
+        const imgEl = (swiperRef.current?.el?.querySelector(".swiper-slide-active img") ?? null) as HTMLImageElement | null;
+        if (imgEl && closeScale > 0) {
+          imgEl.style.transition = `border-radius 80ms ease-in`;
+          imgEl.getBoundingClientRect();
+          imgEl.style.borderRadius = `${14 / closeScale}px`;
+        }
         const anim = stage.animate(
           [{ transform: stage.style.transform }, { transform: flipTransform(originRect) }],
           { duration: CLOSE_DUR, easing: EASING, fill: "forwards" },
@@ -345,7 +379,7 @@ function LightboxContent({ images, index, originRect, onIndexChange, onClose, on
     }
   };
 
-  const btn = "flex h-12 w-12 items-center justify-center rounded-full bg-glass backdrop-blur-md";
+  const btn = "flex h-12 w-12 items-center justify-center rounded-full bg-glass backdrop-blur-md transition-colors hover:bg-white/20 cursor-pointer";
   const barStyle: React.CSSProperties = { left: "50%", transform: "translateX(-50%)", width: "calc(100% - 3rem)" };
 
   return (
@@ -353,6 +387,7 @@ function LightboxContent({ images, index, originRect, onIndexChange, onClose, on
       ref={dialogRef}
       onCancel={(e) => { e.preventDefault(); handleClose(); }}
       onClose={() => { if (!closing.current) handleClose(); }}
+      onMouseMove={onDialogMouseMove}
       aria-label="Image viewer"
       className="fixed inset-x-0 top-0 bottom-auto m-0 h-[100dvh] w-full max-w-none overflow-hidden bg-transparent p-0 backdrop:hidden"
     >
@@ -375,6 +410,7 @@ function LightboxContent({ images, index, originRect, onIndexChange, onClose, on
           mousewheel={{ forceToAxis: true, thresholdTime: 0 }}
           loop={many}
           initialSlide={0}
+          spaceBetween={20}
           speed={SPEED}
           className="lightbox-swiper"
           style={{ position: "absolute", inset: 0 }}
@@ -387,14 +423,14 @@ function LightboxContent({ images, index, originRect, onIndexChange, onClose, on
           }}
         >
           {rotated.map((im, i) => (
-            <SwiperSlide key={i} className="lightbox-slide">
+            <SwiperSlide key={i} className="lightbox-slide" style={{ position: "relative" }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={im.src}
                 alt={im.alt}
                 draggable={false}
                 loading={i === 0 ? "eager" : "lazy"}
-                ref={i === 0 ? (el) => { firstImgRef.current = el; } : (el) => {
+                ref={i === 0 ? undefined : (el) => {
                   if (!el || el.complete) return;
                   el.style.opacity = "0";
                   el.addEventListener("load", () => {
@@ -410,80 +446,36 @@ function LightboxContent({ images, index, originRect, onIndexChange, onClose, on
       </div>
 
       <div ref={chromeRef} className="pointer-events-none absolute inset-0 z-10">
-        {/* Top bar */}
-        <div className="pointer-events-auto absolute top-4 flex items-center justify-between" style={barStyle}>
-          {images[current]?.alt ? (
-            <button onClick={toggleInfo} aria-label="Image info" className={btn}>
-              <InfoIcon />
-            </button>
-          ) : <span />}
+      <div className={`transition-opacity duration-300 ${controlsVisible ? "opacity-100" : "opacity-0 pointer-events-none"}`}>
+        {/* Top bar — close right */}
+        <div className="pointer-events-auto absolute top-4 flex items-center justify-end" style={barStyle}>
           <button onClick={handleClose} aria-label="Close" className={btn}>
             <Cross />
           </button>
         </div>
 
-        {/* Bottom: toast viewport + nav bar */}
+        {/* Bottom bar — index left, alt text center, nav buttons right */}
         <div className="pointer-events-auto absolute bottom-0 inset-x-0">
-          {/* Toast: absolutely at same bottom distance as the nav bar buttons (bottom-8 = pb-8) */}
-          <div className="absolute bottom-8 left-6 right-6 mx-auto max-w-sm z-10">
-            <Toast.Viewport className="toast-viewport">
-              {toasts.map((toast) => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const img = images[(toast as any).imageIndex as number];
-                return (
-                  <Toast.Root
-                    key={toast.id}
-                    toast={toast}
-                    onClick={() => swiperRef.current?.slideToLoop(((toast as any).imageIndex - initial + n) % n)}
-                    className="toast-item cursor-pointer rounded-2xl bg-[rgba(44,44,46,0.92)] backdrop-blur-xl border border-white/10 shadow-2xl"
-                  >
-                    <Toast.Content className="toast-content p-3 flex flex-row items-start gap-3">
-                      {img && (
-                        <div className="w-12 h-12 flex-shrink-0 flex items-center justify-center">
-                          {/* eslint-disable-next-line @next/next/no-img-element */}
-                          <img
-                            src={img.src}
-                            alt=""
-                            aria-hidden
-                            draggable={false}
-                            className="max-w-full max-h-full rounded-lg"
-                          />
-                        </div>
-                      )}
-                      <div className="flex flex-col gap-0.5 min-w-0 flex-1 pt-1">
-                        <Toast.Title className="text-[11px] font-semibold tracking-wide text-white/40 uppercase" />
-                        <Toast.Description className="text-sm text-white/90 leading-relaxed" />
-                      </div>
-                    </Toast.Content>
-                  </Toast.Root>
-                );
-              })}
-            </Toast.Viewport>
-          </div>
-
-          {/* Nav bar */}
           <div className="flex items-center justify-between px-6 pb-8 pt-2">
-            {many ? <GlassPill className="px-4 py-3 tabular-nums">{current + 1} / {n}</GlassPill> : <span />}
-            {many && (
-              <div className="flex gap-2">
-                <button onClick={() => swiperRef.current?.slidePrev()} aria-label="Previous image" className={btn}><Chevron flip /></button>
-                <button onClick={() => swiperRef.current?.slideNext()} aria-label="Next image" className={btn}><Chevron /></button>
-              </div>
+            {many ? (
+              <GlassPill className="px-4 py-3 tabular-nums shrink-0">{current + 1} / {n}</GlassPill>
+            ) : <span />}
+            {images[current]?.alt && (
+              <GlassPill className="px-4 py-3 mx-3 max-w-[40vw]">
+                <MarqueeText text={images[current].alt} />
+              </GlassPill>
             )}
+            {many ? (
+              <div className="flex gap-2 shrink-0">
+                <button onClick={() => swiperRef.current?.slidePrev()} onMouseEnter={pauseInactivityTimer} onMouseLeave={resumeInactivityTimer} aria-label="Previous image" className={btn}><Chevron flip /></button>
+                <button onClick={() => swiperRef.current?.slideNext()} onMouseEnter={pauseInactivityTimer} onMouseLeave={resumeInactivityTimer} aria-label="Next image" className={btn}><Chevron /></button>
+              </div>
+            ) : <span />}
           </div>
         </div>
       </div>
+      </div>
     </dialog>
-  );
-}
-
-function InfoIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 446.2 446.2" fillRule="evenodd" clipRule="evenodd" aria-hidden>
-      <path fill="currentColor" d="M240.19 83.54c16.85,-0.8 31.16,12.22 31.95,29.07 0.8,16.86 -12.22,31.17 -29.07,31.96 -16.85,0.8 -31.16,-12.22 -31.96,-29.08 -0.79,-16.85 12.23,-31.16 29.08,-31.95z"/>
-      <path fill="currentColor" d="M179.91 223.86l-5.71 -15.12c-0.31,-0.84 -0.2,-1.7 0.31,-2.44 13.11,-18.64 32.95,-35.49 57.23,-33.12 15.77,1.52 26.63,16.48 23.22,31.94 -8.82,39.95 -18.27,79.76 -27.09,119.7 -1.2,5.44 3.96,10.08 9.24,8.32 9,-3.01 17.41,-14.54 22.86,-21.97 1.24,-1.69 3.85,-1.33 4.6,0.63l5.69 15.11c0.32,0.84 0.22,1.71 -0.3,2.45 -13.12,18.64 -32.95,35.48 -57.24,33.11 -15.76,-1.53 -26.63,-16.47 -23.21,-31.94 8.82,-39.95 18.27,-79.75 27.08,-119.7 1.2,-5.44 -3.95,-10.08 -9.23,-8.31 -9,3 -17.4,14.52 -22.87,21.96 -1.24,1.69 -3.85,1.33 -4.58,-0.62z"/>
-      <path fill="currentColor" fillRule="nonzero" d="M223.1 0c123.12,0 223.1,99.98 223.1,223.1 0,123.12 -99.98,223.1 -223.1,223.1 -123.12,0 -223.1,-99.98 -223.1,-223.1 0,-123.12 99.98,-223.1 223.1,-223.1zm0 22.86c-110.66,0 -200.24,89.58 -200.24,200.24 0,110.66 89.58,200.24 200.24,200.24 110.66,0 200.24,-89.58 200.24,-200.24 0,-110.66 -89.58,-200.24 -200.24,-200.24z"/>
-    </svg>
   );
 }
 
@@ -492,6 +484,53 @@ function Cross() {
     <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden>
       <path d="M4 4l10 10M14 4L4 14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
     </svg>
+  );
+}
+
+function MarqueeText({ text }: { text: string }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLSpanElement>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    const textEl = textRef.current;
+    if (!container || !textEl) return;
+
+    const overflow = textEl.scrollWidth - container.offsetWidth;
+    if (overflow <= 0) return;
+
+    const scrollDuration = Math.max(1500, overflow * 35);
+    const pauseDuration = 1500;
+    const total = scrollDuration * 2 + pauseDuration * 2;
+    const p1 = pauseDuration / total;
+    const p2 = (pauseDuration + scrollDuration) / total;
+    const p3 = (pauseDuration * 2 + scrollDuration) / total;
+
+    const anim = textEl.animate(
+      [
+        { transform: "translateX(0)", offset: 0, easing: "linear" },
+        { transform: "translateX(0)", offset: p1, easing: "ease-in-out" },
+        { transform: `translateX(-${overflow}px)`, offset: p2, easing: "linear" },
+        { transform: `translateX(-${overflow}px)`, offset: p3, easing: "ease-in-out" },
+        { transform: "translateX(0)", offset: 1 },
+      ],
+      { duration: total, iterations: Infinity },
+    );
+
+    return () => anim.cancel();
+  }, [text]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="overflow-hidden"
+      style={{
+        WebkitMaskImage: "linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%)",
+        maskImage: "linear-gradient(to right, transparent 0%, black 6%, black 94%, transparent 100%)",
+      }}
+    >
+      <span ref={textRef} className="whitespace-nowrap inline-block" style={{ paddingInline: "6px" }}>{text}</span>
+    </div>
   );
 }
 

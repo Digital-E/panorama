@@ -95,7 +95,7 @@ export default async function ProjectPage({ params, searchParams }: Props) {
               </Link>
             </div>
             <div className="text-center leading-tight">
-              <p className="font-semibold">{project.title}</p>
+              <p className="text-[16px] font-semibold">{project.title}</p>
               <p className="text-sm text-ink-muted">{project.year}</p>
             </div>
             <div className="absolute right-0">

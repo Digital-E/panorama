@@ -82,7 +82,7 @@ export default async function WorkPage({ params }: Props) {
                           className="w-full h-full object-cover"
                         />
                       </div>
-                      <span className="text-lg truncate">{project.title}</span>
+                      <span className="text-[16px] truncate">{project.title}</span>
                     </div>
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden className="shrink-0 ml-2">
                       <path d="M6 3.5L10.5 8L6 12.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-ink-muted" />
