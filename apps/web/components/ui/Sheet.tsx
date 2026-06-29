@@ -284,7 +284,7 @@ export function Sheet({
       <div
         ref={sheetRef}
         tabIndex={-1}
-        className="fixed inset-x-(--spacing-gutter) bottom-(--spacing-gutter) mx-auto flex max-h-[85svh] max-w-(--container-column) flex-col overflow-hidden rounded-(--radius-sheet) bg-surface outline-none"
+        className="fixed inset-x-(--spacing-gutter-x) bottom-[10px] mx-auto flex max-h-[85svh] max-w-(--container-column) flex-col overflow-hidden rounded-(--radius-sheet) bg-surface outline-none"
       >
         <div
           className="flex shrink-0 touch-none select-none justify-center pb-4 pt-3"

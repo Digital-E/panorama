@@ -33,6 +33,7 @@ type Props = {
   originRect?: DOMRect | null;
   onIndexChange: (i: number) => void;
   onClose: () => void;
+  onReady?: () => void;
 };
 
 export function Lightbox(props: Props) {
@@ -43,14 +44,16 @@ export function Lightbox(props: Props) {
   );
 }
 
-function LightboxContent({ images, index, originRect, onIndexChange, onClose }: Props) {
+function LightboxContent({ images, index, originRect, onIndexChange, onClose, onReady }: Props) {
   const { toasts, add: addToast, close: closeToast } = Toast.useToastManager();
 
-  const dialogRef  = useRef<HTMLDialogElement>(null);
-  const swiperRef  = useRef<SwiperClass | null>(null);
-  const stageRef   = useRef<HTMLDivElement>(null);
-  const overlayRef = useRef<HTMLDivElement>(null);
-  const chromeRef  = useRef<HTMLDivElement>(null);
+  const dialogRef   = useRef<HTMLDialogElement>(null);
+  const focusTrapRef = useRef<HTMLDivElement>(null);
+  const swiperRef   = useRef<SwiperClass | null>(null);
+  const stageRef    = useRef<HTMLDivElement>(null);
+  const overlayRef  = useRef<HTMLDivElement>(null);
+  const chromeRef   = useRef<HTMLDivElement>(null);
+  const firstImgRef = useRef<HTMLImageElement | null>(null);
   const n = images.length;
   const many = n > 1;
   const [current, setCurrent] = useState(index);
@@ -137,37 +140,82 @@ function LightboxContent({ images, index, originRect, onIndexChange, onClose }: 
     const stage   = stageRef.current;
     const overlay = overlayRef.current;
 
-    // Pin stage to its starting position and hide overlay before showModal so
-    // any paint triggered by showModal() shows the correct initial state instead
-    // of a full-screen flash of whatever slide Swiper rendered first.
     const from = originRect
       ? flipTransform(originRect)
       : `translateY(${window.innerHeight}px) scale(0.8)`;
-    if (stage) stage.style.transform = from;
+
+    // Use opacity:0 (not visibility:hidden) so the GPU still rasterizes the
+    // stage while it's invisible — prevents the iOS Safari compositing-layer
+    // texture-upload flash when the stage first becomes visible.
+    if (stage) { stage.style.transform = from; stage.style.opacity = "0"; }
     if (overlay) overlay.style.opacity = "0";
+    if (chromeRef.current) chromeRef.current.style.opacity = "0";
 
     dialog?.showModal();
+    onReady?.();
+    focusTrapRef.current?.focus({ preventScroll: true });
 
-    if (stage) {
-      const anim = stage.animate(
-        [{ transform: from }, { transform: "none" }],
-        { duration: OPEN_DUR, easing: EASING, fill: "forwards" },
-      );
-      anim.onfinish = () => {
-        if (stageRef.current) stageRef.current.style.transform = "";
-        anim.cancel();
-      };
+    let animated = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const startAnim = () => {
+      if (animated) return;
+      animated = true;
+      clearTimeout(timer);
+      requestAnimationFrame(() => {
+        if (stageRef.current) stageRef.current.style.opacity = "";
+
+        const stageEl   = stageRef.current;
+        const overlayEl = overlayRef.current;
+        const chromeEl  = chromeRef.current;
+
+        if (stageEl) {
+          const anim = stageEl.animate(
+            [{ transform: from }, { transform: "none" }],
+            { duration: OPEN_DUR, easing: EASING, fill: "forwards" },
+          );
+          anim.onfinish = () => {
+            if (stageRef.current) stageRef.current.style.transform = "";
+            anim.cancel();
+          };
+        }
+        const overlayAnim = overlayEl?.animate(
+          [{ opacity: "0" }, { opacity: "1" }],
+          { duration: OPEN_DUR, easing: "ease", fill: "forwards" },
+        );
+        if (overlayAnim) {
+          overlayAnim.onfinish = () => {
+            if (overlayRef.current) overlayRef.current.style.opacity = "";
+            overlayAnim.cancel();
+          };
+        }
+        const chromeAnim = chromeEl?.animate(
+          [{ opacity: "0" }, { opacity: "1" }],
+          { duration: OPEN_DUR, easing: "ease", fill: "forwards" },
+        );
+        if (chromeAnim) {
+          chromeAnim.onfinish = () => {
+            if (chromeRef.current) chromeRef.current.style.opacity = "";
+            chromeAnim.cancel();
+          };
+        }
+      });
+    };
+
+    // Wait for the first image to decode before starting the FLIP so it's
+    // visible throughout the animation. The lightbox loads the original src
+    // while the masonry grid loads an optimized Next.js Image URL — different
+    // URLs mean the original may not be in cache. 500ms cap prevents blocking
+    // indefinitely on slow connections (image will just pop in mid-FLIP).
+    const firstImg = firstImgRef.current;
+    if (!firstImg || firstImg.complete) {
+      startAnim();
+    } else {
+      timer = setTimeout(startAnim, 500);
+      firstImg.decode().then(startAnim).catch(startAnim);
     }
-    const overlayAnim = overlay?.animate(
-      [{ opacity: "0" }, { opacity: "1" }],
-      { duration: OPEN_DUR, easing: "ease", fill: "forwards" },
-    );
-    if (overlayAnim) {
-      overlayAnim.onfinish = () => {
-        if (overlayRef.current) overlayRef.current.style.opacity = "";
-        overlayAnim.cancel();
-      };
-    }
+
+    return () => { animated = true; clearTimeout(timer); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -308,6 +356,8 @@ function LightboxContent({ images, index, originRect, onIndexChange, onClose }: 
       aria-label="Image viewer"
       className="fixed inset-x-0 top-0 bottom-auto m-0 h-[100dvh] w-full max-w-none overflow-hidden bg-transparent p-0 backdrop:hidden"
     >
+      {/* Absorbs focus on open; ring suppressed by `dialog [tabindex="-1"]:focus-visible` in globals.css */}
+      <div ref={focusTrapRef} tabIndex={-1} aria-hidden className="fixed" />
       <div ref={overlayRef} className="absolute inset-0 bg-black" style={{ willChange: "opacity" }} />
 
       <div
@@ -344,7 +394,7 @@ function LightboxContent({ images, index, originRect, onIndexChange, onClose }: 
                 alt={im.alt}
                 draggable={false}
                 loading={i === 0 ? "eager" : "lazy"}
-                ref={(el) => {
+                ref={i === 0 ? (el) => { firstImgRef.current = el; } : (el) => {
                   if (!el || el.complete) return;
                   el.style.opacity = "0";
                   el.addEventListener("load", () => {

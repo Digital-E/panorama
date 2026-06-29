@@ -24,7 +24,10 @@ export async function generateStaticParams() {
   return params;
 }
 
-type Props = { params: Promise<{ username: string; project: string }> };
+type Props = {
+  params: Promise<{ username: string; project: string }>;
+  searchParams: Promise<{ from?: string }>;
+};
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { username, project: slug } = await params;
@@ -36,13 +39,14 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-export default async function ProjectPage({ params }: Props) {
+export default async function ProjectPage({ params, searchParams }: Props) {
   const { username, project: slug } = await params;
+  const { from } = await searchParams;
   const result = await getProject(username, slug);
   if (!result) notFound();
   const { profile, project } = result;
 
-  const backHref = `/${profile.username}`;
+  const backHref = from === "work" ? `/${profile.username}/work` : `/${profile.username}`;
   const galleryImages = extractProjectImages(project.cover, project.blocks);
 
   return (
@@ -71,7 +75,7 @@ export default async function ProjectPage({ params }: Props) {
 
       {/* ── Mobile — image grid ── */}
       <div data-page="project" className="md:hidden min-h-dvh">
-        <header className="sticky top-0 z-50 px-(--spacing-gutter) pt-(--spacing-gutter)">
+        <header className="sticky top-0 z-50 px-[10px] pt-[20px] pb-[10px]">
           <div aria-hidden className="pointer-events-none absolute inset-0">
             <div className="absolute inset-0 backdrop-blur-[3px]" style={{ WebkitMaskImage: "linear-gradient(to bottom, #000 0%, transparent 100%)", maskImage: "linear-gradient(to bottom, #000 0%, transparent 100%)" }} />
             <div className="absolute inset-0 backdrop-blur-[8px]" style={{ WebkitMaskImage: "linear-gradient(to bottom, #000 0%, transparent 60%)", maskImage: "linear-gradient(to bottom, #000 0%, transparent 60%)" }} />

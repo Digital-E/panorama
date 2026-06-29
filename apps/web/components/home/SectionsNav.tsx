@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRef, useState } from "react";
 import type { Profile } from "@portfolio/schema";
 import { Card } from "@/components/ui/Card";
@@ -7,6 +8,7 @@ import { Sheet } from "@/components/ui/Sheet";
 import { ContactForm } from "./ContactForm";
 
 type SheetName = "biography" | "experience" | "contact" | null;
+type Row = { label: string; href?: string; onClick?: () => void };
 
 export function SectionsNav({ profile }: { profile: Profile }) {
   const [open, setOpen] = useState<SheetName>(null);
@@ -17,7 +19,6 @@ export function SectionsNav({ profile }: { profile: Profile }) {
 
   const handleSent = () => {
     setOpen(null);
-    // Wait for sheet leave animation before showing toast
     setTimeout(() => {
       clearTimeout(toastTimeout.current);
       setToast(true);
@@ -25,15 +26,11 @@ export function SectionsNav({ profile }: { profile: Profile }) {
     }, 400);
   };
 
-  const rows: { label: string; onClick: () => void }[] = [];
+  const rows: Row[] = [];
   if (profile.experience.length > 0)
     rows.push({ label: "Experience", onClick: () => setOpen("experience") });
   if (profile.projects.length > 0)
-    rows.push({
-      label: "Work",
-      onClick: () =>
-        document.getElementById("work")?.scrollIntoView({ behavior: "smooth" }),
-    });
+    rows.push({ label: "Work", href: `/${profile.username}/work` });
   if (profile.contactEnabled)
     rows.push({ label: "Contact", onClick: () => setOpen("contact") });
 
@@ -57,13 +54,23 @@ export function SectionsNav({ profile }: { profile: Profile }) {
             {rows.map((row, i) => (
               <li key={row.label}>
                 {i > 0 && <div className="mx-6 h-px bg-surface-edge" />}
-                <button
-                  onClick={row.onClick}
-                  className="flex w-full items-center justify-between px-6 py-5 text-left"
-                >
-                  <span className="text-lg">{row.label}</span>
-                  <Chevron />
-                </button>
+                {row.href ? (
+                  <Link
+                    href={row.href}
+                    className="flex w-full items-center justify-between px-6 py-5 text-left"
+                  >
+                    <span className="text-lg">{row.label}</span>
+                    <Chevron />
+                  </Link>
+                ) : (
+                  <button
+                    onClick={row.onClick}
+                    className="flex w-full items-center justify-between px-6 py-5 text-left"
+                  >
+                    <span className="text-lg">{row.label}</span>
+                    <Chevron />
+                  </button>
+                )}
               </li>
             ))}
           </ul>

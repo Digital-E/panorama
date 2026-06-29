@@ -8,24 +8,20 @@ import { Lightbox } from "@/components/project/Lightbox";
 export function MobileProjectGrid({ images }: { images: ImageAsset[] }) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const [originRect, setOriginRect] = useState<DOMRect | null>(null);
-  const [hiddenIndex, setHiddenIndex] = useState<number | null>(null);
   const btnRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const open = (i: number) => {
     setOriginRect(btnRefs.current[i]?.getBoundingClientRect() ?? null);
     setLightboxIndex(i);
-    setHiddenIndex(i);
   };
 
   const handleIndexChange = (i: number) => {
     setLightboxIndex(i);
     setOriginRect(btnRefs.current[i]?.getBoundingClientRect() ?? null);
-    setHiddenIndex(i);
   };
 
   const handleClose = () => {
     setLightboxIndex(null);
-    setHiddenIndex(null);
   };
 
   // Assign images left-to-right: even indices → left column, odd → right column.
@@ -39,8 +35,7 @@ export function MobileProjectGrid({ images }: { images: ImageAsset[] }) {
       ref={(el) => { btnRefs.current[i] = el; }}
       onPointerDown={() => { new window.Image().src = img.src; }}
       onClick={() => open(i)}
-      className="block w-full cursor-pointer"
-      style={{ opacity: hiddenIndex === i ? 0 : 1 }}
+      className="block w-full cursor-pointer overflow-hidden rounded-[14px]"
     >
       <FadeImage
         src={img.src}
