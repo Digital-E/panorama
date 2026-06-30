@@ -1,5 +1,6 @@
 import { ProfileSchema, type Profile, type Project } from "@portfolio/schema";
 import { demoProfile } from "./fixtures/demo-profile";
+import { gerayMenaProfile } from "./fixtures/geray-mena-profile";
 import { winterProfile } from "./fixtures/winter-profile";
 
 /*
@@ -8,7 +9,7 @@ import { winterProfile } from "./fixtures/winter-profile";
  * .parse(): the renderer never receives a shape the schema didn't bless.
  */
 
-const FIXTURES = [demoProfile, winterProfile];
+const FIXTURES = [demoProfile, winterProfile, gerayMenaProfile];
 const fixtureMap = new Map(FIXTURES.map((p) => [p.username, p]));
 
 export async function getProfile(username: string): Promise<Profile | null> {
@@ -30,4 +31,8 @@ export async function getProject(
 
 export async function listPublishedUsernames(): Promise<string[]> {
   return FIXTURES.map((p) => p.username);
+}
+
+export async function listProfiles(): Promise<{ username: string; displayName: string; role?: string }[]> {
+  return FIXTURES.map((p) => ({ username: p.username, displayName: p.displayName, role: p.role }));
 }

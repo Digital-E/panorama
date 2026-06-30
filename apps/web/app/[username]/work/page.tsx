@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Link } from "next-view-transitions";
 import { notFound } from "next/navigation";
 import { RESERVED_USERNAMES } from "@portfolio/schema";
 import { getProfile, listPublishedUsernames } from "@/lib/data";

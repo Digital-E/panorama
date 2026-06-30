@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "next-view-transitions";
 import { useViewMode, type ViewMode } from "@/lib/useViewMode";
 
 const buttons: { mode: ViewMode; label: string }[] = [

@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { Link } from "next-view-transitions";
 import type { Project } from "@portfolio/schema";
 import { FadeImage } from "@/components/ui/FadeImage";
 import { FadeVideo } from "@/components/ui/FadeVideo";

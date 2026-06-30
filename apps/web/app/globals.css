@@ -115,23 +115,27 @@ dialog {
 }
 
 
-/* Desktop page transitions — fade out handled by PageTransitionManager, fade in by CSS */
+/* Page transitions via next-view-transitions */
+@keyframes page-fade-in  { from { opacity: 0; scale: 0.99; } }
+@keyframes page-fade-out { to   { opacity: 0; scale: 0.99; } }
+@keyframes slide-from-top { from { opacity: 0; transform: translateY(-10px); } }
+@keyframes slide-to-top   { to   { opacity: 0; transform: translateY(-10px); } }
+
+/* No root crossfade — only named elements animate */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
 @media (hover: hover) {
-  @keyframes page-fade-in {
-    from { opacity: 0; scale: 0.99; }
-  }
+  [data-page-content] { view-transition-name: page-content; }
+  [data-slide-header] { view-transition-name: page-header; }
 
-  [data-page-content] {
-    animation: page-fade-in 300ms ease 0ms both;
-  }
+  ::view-transition-old(page-content) { animation: 300ms ease both page-fade-out; }
+  ::view-transition-new(page-content) { animation: 300ms ease both page-fade-in; animation-delay: 450ms; }
 
-  @keyframes slide-from-top {
-    from { opacity: 0; transform: translateY(-10px); }
-  }
-
-  [data-slide-header] {
-    animation: slide-from-top 300ms ease both;
-  }
+  ::view-transition-old(page-header) { animation: 250ms ease both slide-to-top; }
+  ::view-transition-new(page-header) { animation: 300ms ease both slide-from-top; animation-delay: 450ms; }
 }
 
 @media (prefers-reduced-motion: reduce) {

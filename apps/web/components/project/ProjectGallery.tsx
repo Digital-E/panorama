@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
+import { Link } from "next-view-transitions";
 import type { ImageAsset } from "@portfolio/schema";
 import { type ViewMode } from "@/lib/useViewMode";
 import { useViewTransition } from "@/lib/useViewTransition";
@@ -103,13 +103,13 @@ export function ProjectGallery({
             <>
               <div className={col1}>{images.map(renderBtn)}</div>
               <div className={col2}>
-                <div className="flex-1 flex flex-col gap-(--spacing-gutter)">{images.filter((_, i) => i % 2 === 0).map(renderBtn)}</div>
-                <div className="flex-1 flex flex-col gap-(--spacing-gutter)">{images.filter((_, i) => i % 2 === 1).map(renderBtn)}</div>
+                <div className="flex-1 flex flex-col gap-(--spacing-gutter)">{images.reduce<React.ReactNode[]>((acc, img, i) => { if (i % 2 === 0) acc.push(renderBtn(img, i)); return acc; }, [])}</div>
+                <div className="flex-1 flex flex-col gap-(--spacing-gutter)">{images.reduce<React.ReactNode[]>((acc, img, i) => { if (i % 2 === 1) acc.push(renderBtn(img, i)); return acc; }, [])}</div>
               </div>
               <div className={col3}>
-                <div className="flex-1 flex flex-col gap-(--spacing-gutter)">{images.filter((_, i) => i % 3 === 0).map(renderBtn)}</div>
-                <div className="flex-1 flex flex-col gap-(--spacing-gutter)">{images.filter((_, i) => i % 3 === 1).map(renderBtn)}</div>
-                <div className="flex-1 flex flex-col gap-(--spacing-gutter)">{images.filter((_, i) => i % 3 === 2).map(renderBtn)}</div>
+                <div className="flex-1 flex flex-col gap-(--spacing-gutter)">{images.reduce<React.ReactNode[]>((acc, img, i) => { if (i % 3 === 0) acc.push(renderBtn(img, i)); return acc; }, [])}</div>
+                <div className="flex-1 flex flex-col gap-(--spacing-gutter)">{images.reduce<React.ReactNode[]>((acc, img, i) => { if (i % 3 === 1) acc.push(renderBtn(img, i)); return acc; }, [])}</div>
+                <div className="flex-1 flex flex-col gap-(--spacing-gutter)">{images.reduce<React.ReactNode[]>((acc, img, i) => { if (i % 3 === 2) acc.push(renderBtn(img, i)); return acc; }, [])}</div>
               </div>
             </>
           );

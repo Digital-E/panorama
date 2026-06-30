@@ -12,6 +12,7 @@
     "@base-ui/react": "^1.6.0",
     "@portfolio/schema": "*",
     "next": "^15.3.0",
+    "next-view-transitions": "^0.3.5",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "swiper": "^12.2.0",
