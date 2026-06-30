@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { getProject, listPublishedUsernames, getProfile } from "@/lib/data";
 import { ProjectGallery } from "@/components/project/ProjectGallery";
+import { ProjectHeaderBar } from "@/components/project/ProjectHeaderBar";
 import { extractProjectImages } from "@/lib/extractProjectImages";
 import { HomeMenu } from "@/components/home/HomeMenu";
 import { MobileProjectGrid } from "@/components/project/MobileProjectGrid";
@@ -54,22 +55,14 @@ export default async function ProjectPage({ params, searchParams }: Props) {
       {/* ── Desktop — matches home layout ── */}
       <div className="hidden md:block">
         <HomeMenu profile={profile} />
-
-        {/* Back button — fixed left column, below dots */}
-        <div className="fixed left-3 top-[108px] z-40 px-3">
-          <Link
-            href={backHref}
-            aria-label="Back to home"
-            className="flex h-7 w-7 items-center justify-center rounded-full bg-surface text-ink-muted hover:text-ink transition-colors"
-          >
-            <svg width="15" height="15" viewBox="0 0 15 15" fill="none" aria-hidden>
-              <path d="M9 3L4.5 7.5L9 12" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </Link>
-        </div>
-
-        <main className="flex flex-col gap-(--spacing-gutter) px-(--spacing-gutter-x) py-(--spacing-gutter) pt-5 md:pl-[250px] md:pr-[150px]">
-          <ProjectGallery images={galleryImages} title={project.title} year={project.year} />
+      </div>
+      {/* Project header bar — desktop only, outside page transition */}
+      <div className="hidden md:block pl-[250px] pr-[150px] pt-(--spacing-gutter)">
+        <ProjectHeaderBar title={project.title} year={project.year} backHref={backHref} />
+      </div>
+      <div data-page-content="" className="hidden md:block">
+        <main data-recede-target="" className="flex flex-col px-(--spacing-gutter-x) pt-0 pb-(--spacing-gutter) md:pl-[250px] md:pr-[150px]">
+          <ProjectGallery images={galleryImages} title={project.title} year={project.year} backHref={backHref} showToggle={false} />
         </main>
       </div>
 

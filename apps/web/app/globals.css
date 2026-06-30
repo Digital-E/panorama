@@ -36,11 +36,6 @@
   color-scheme: dark;
 }
 
-[data-page="project"] {
-  --color-canvas: #26292E;
-  --color-surface: #31343A;
-}
-
 html {
   scroll-behavior: smooth;
 }
@@ -119,6 +114,25 @@ dialog {
   display: none;
 }
 
+
+/* Desktop page transitions — fade out handled by PageTransitionManager, fade in by CSS */
+@media (hover: hover) {
+  @keyframes page-fade-in {
+    from { opacity: 0; scale: 0.99; }
+  }
+
+  [data-page-content] {
+    animation: page-fade-in 300ms ease 0ms both;
+  }
+
+  @keyframes slide-from-top {
+    from { opacity: 0; transform: translateY(-10px); }
+  }
+
+  [data-slide-header] {
+    animation: slide-from-top 300ms ease both;
+  }
+}
 
 @media (prefers-reduced-motion: reduce) {
   html {

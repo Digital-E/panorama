@@ -8,7 +8,10 @@ const loadedUrls = new Set<string>();
 
 export function FadeImage({ className = "", onLoad, ...props }: ImageProps) {
   const src = typeof props.src === "string" ? props.src : "";
-  const [loaded, setLoaded] = useState(() => loadedUrls.has(src));
+  // Captured at mount — if we've seen this URL before, skip opacity management
+  // entirely and let the image appear naturally rather than risk a flash.
+  const skipFade = useRef(loadedUrls.has(src)).current;
+  const [loaded, setLoaded] = useState(false);
   const imgRef = useRef<HTMLImageElement>(null);
 
   useLayoutEffect(() => {
@@ -27,7 +30,7 @@ export function FadeImage({ className = "", onLoad, ...props }: ImageProps) {
         if (src) loadedUrls.add(src);
         onLoad?.(e);
       }}
-      className={`transition-opacity duration-500 ${loaded ? "opacity-100" : "opacity-0"} ${className}`}
+      className={`${skipFade ? "" : `transition-opacity duration-500 ${loaded ? "opacity-100" : "opacity-0"}`} ${className}`}
     />
   );
 }

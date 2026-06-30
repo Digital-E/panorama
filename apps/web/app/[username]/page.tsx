@@ -6,6 +6,7 @@ import { HomeMenu } from "@/components/home/HomeMenu";
 import { HeroCard } from "@/components/home/HeroCard";
 import { SectionsNav } from "@/components/home/SectionsNav";
 import { ProjectsGrid } from "@/components/home/ProjectsGrid";
+import { ViewToggleBar } from "@/components/home/ViewToggleBar";
 import { FooterCard } from "@/components/home/FooterCard";
 
 /*
@@ -46,27 +47,36 @@ export default async function ProfilePage({ params }: Props) {
   return (
     <>
       <HomeMenu profile={profile} />
-      <main className="flex flex-col gap-(--spacing-gutter) px-(--spacing-gutter-x) py-[10px] md:py-(--spacing-gutter) md:pl-[250px] md:pr-[150px]">
-        <div className="flex flex-col gap-(--spacing-gutter) md:hidden">
-          <HeroCard profile={profile} />
-          <SectionsNav profile={profile} />
+      {/* View toggle bar — desktop only, outside page transition */}
+      <div className="hidden md:block pl-[250px] pr-[150px] pt-(--spacing-gutter)">
+        <div className="flex items-center justify-end h-7 mb-3">
+          <ViewToggleBar />
         </div>
-        <ProjectsGrid
-          username={profile.username}
-          projects={[
-            ...profile.projects,
-            ...profile.projects.map((p) => ({ ...p, slug: `${p.slug}-b` })),
-            ...profile.projects.map((p) => ({ ...p, slug: `${p.slug}-c` })),
-            ...profile.projects.map((p) => ({ ...p, slug: `${p.slug}-d` })),
-          ]}
-        />
-        <FooterCard profile={profile} />
-        <img
-          src="/Panorama-logo-1.svg"
-          alt="Panorama"
-          className="w-full my-[10px] px-[10px] md:px-0"
-        />
-      </main>
+      </div>
+      <div data-page-content="">
+        <main data-recede-target="" className="flex flex-col gap-(--spacing-gutter) px-(--spacing-gutter-x) py-[10px] md:pt-0 md:pb-(--spacing-gutter) md:pl-[250px] md:pr-[150px]">
+          <div className="flex flex-col gap-(--spacing-gutter) md:hidden">
+            <HeroCard profile={profile} />
+            <SectionsNav profile={profile} />
+          </div>
+          <ProjectsGrid
+            username={profile.username}
+            showToggle={false}
+            projects={[
+              ...profile.projects,
+              ...profile.projects.map((p) => ({ ...p, slug: `${p.slug}-b` })),
+              ...profile.projects.map((p) => ({ ...p, slug: `${p.slug}-c` })),
+              ...profile.projects.map((p) => ({ ...p, slug: `${p.slug}-d` })),
+            ]}
+          />
+          <FooterCard profile={profile} />
+          <img
+            src="/Panorama-logo-1.svg"
+            alt="Panorama"
+            className="w-full my-[10px] px-[10px] md:px-0"
+          />
+        </main>
+      </div>
     </>
   );
 }

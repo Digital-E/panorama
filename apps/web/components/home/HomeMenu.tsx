@@ -33,12 +33,40 @@ export function HomeMenu({ profile }: { profile: Profile }) {
   const dialogRef    = useRef<HTMLDialogElement>(null);
   const panelRef     = useRef<HTMLDivElement>(null);
   const overlayRef   = useRef<HTMLDivElement>(null);
+  const navRef       = useRef<HTMLDivElement>(null);
   const panelAnim    = useRef<Animation | undefined>(undefined);
   const overlayAnim  = useRef<Animation | undefined>(undefined);
   const lockedScrollY = useRef(0);
   const dragDismissed = useRef(false);
   const snapTimeout   = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const drag = useRef({ active: false, startY: 0, lastY: 0, lastTime: 0, velocity: 0 });
+
+  // The recede transform targets <main data-recede-target> rather than body so that
+  // position:fixed children of body (the nav) aren't dragged into the transform context.
+  // The nav is then animated separately with a matching transform whose origin is
+  // computed to align with the same viewport-centre pivot.
+  const getRecedeTarget = (): HTMLElement =>
+    document.querySelector<HTMLElement>("[data-recede-target]") ?? document.body;
+
+  const applyRecedeToNav = (duration: number, easing: string) => {
+    const nav = navRef.current;
+    if (!nav) return;
+    const rect = nav.getBoundingClientRect();
+    const cx = window.innerWidth / 2;
+    const cy = window.innerHeight / 2;
+    nav.style.transformOrigin = `${cx - rect.left}px ${cy - rect.top}px`;
+    nav.style.transition = `transform ${duration}ms ${easing}`;
+    nav.style.transform  = `translateY(${PAGE_TRANSLATE}) scale(${PAGE_SCALE})`;
+  };
+
+  const clearRecedeFromNav = (duration?: number, easing?: string) => {
+    const nav = navRef.current;
+    if (!nav) return;
+    if (duration !== undefined) {
+      nav.style.transition = `transform ${duration}ms ${easing}`;
+    }
+    nav.style.transform = "";
+  };
 
   const lockScroll = () => {
     lockedScrollY.current = window.scrollY;
@@ -49,18 +77,23 @@ export function HomeMenu({ profile }: { profile: Profile }) {
     body.style.width      = "100%";
     body.style.overflow   = "hidden";
     document.documentElement.style.background = PAGE_RECEDE_VOID;
-    body.style.transformOrigin = `50% ${lockedScrollY.current + window.innerHeight / 2}px`;
-    body.style.transition = `transform ${DURATION_IN}ms ease, border-radius ${DURATION_IN}ms ease`;
-    body.style.transform  = `translateY(${PAGE_TRANSLATE}) scale(${PAGE_SCALE})`;
-    body.style.borderRadius = PAGE_RADIUS;
+    body.style.background = PAGE_RECEDE_VOID;
+    const target = getRecedeTarget();
+    target.style.transformOrigin = `50% ${lockedScrollY.current + window.innerHeight / 2}px`;
+    target.style.transition = `transform ${DURATION_IN}ms ease, border-radius ${DURATION_IN}ms ease`;
+    target.style.transform  = `translateY(${PAGE_TRANSLATE}) scale(${PAGE_SCALE})`;
+    target.style.borderRadius = PAGE_RADIUS;
+    applyRecedeToNav(DURATION_IN, "ease");
   };
 
   const scaleUp = () => {
     const body = document.body;
     if (body.style.position !== "fixed") return;
-    body.style.transition   = `transform ${DURATION_OUT}ms ease-in, border-radius ${DURATION_OUT}ms ease-in`;
-    body.style.transform    = "";
-    body.style.borderRadius = "";
+    const target = getRecedeTarget();
+    target.style.transition   = `transform ${DURATION_OUT}ms ease-in, border-radius ${DURATION_OUT}ms ease-in`;
+    target.style.transform    = "";
+    target.style.borderRadius = "";
+    clearRecedeFromNav(DURATION_OUT, "ease-in");
   };
 
   const unlockScroll = () => {
@@ -74,11 +107,15 @@ export function HomeMenu({ profile }: { profile: Profile }) {
     body.style.insetInline  = "";
     body.style.width        = "";
     body.style.overflow     = "";
-    body.style.transform    = "";
-    body.style.transformOrigin = "";
-    body.style.borderRadius = "";
-    body.style.transition   = "";
+    body.style.background   = "";
+    const target = getRecedeTarget();
+    target.style.transform    = "";
+    target.style.transformOrigin = "";
+    target.style.borderRadius = "";
+    target.style.transition   = "";
     html.style.background   = "";
+    const nav = navRef.current;
+    if (nav) { nav.style.transform = ""; nav.style.transformOrigin = ""; nav.style.transition = ""; }
     window.scrollTo(0, lockedScrollY.current);
     html.style.scrollBehavior = prev;
   };
@@ -247,7 +284,7 @@ export function HomeMenu({ profile }: { profile: Profile }) {
   return (
     <>
       {/* Top-left — desktop only */}
-      <div className="fixed left-3 top-3 z-50 hidden flex-col items-start gap-2 md:flex">
+      <div ref={navRef} className="fixed left-3 top-3 z-50 hidden flex-col items-start gap-2 md:flex">
         <Link href={`/${profile.username}`} className="flex items-center px-4 py-2.5 transition-opacity hover:opacity-70">
           <div className="text-left leading-tight">
             <p className="text-[15px]">{profile.displayName}</p>

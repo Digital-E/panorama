@@ -36,7 +36,7 @@ export default async function WorkPage({ params }: Props) {
   const backHref = `/${profile.username}`;
 
   return (
-    <div className="min-h-dvh">
+    <div data-page-content="" className="min-h-dvh">
       <header className="sticky top-0 z-50 px-(--spacing-gutter-x) pt-(--spacing-gutter)">
         <div aria-hidden className="pointer-events-none absolute inset-0">
           <div className="absolute inset-0 backdrop-blur-[3px]" style={{ WebkitMaskImage: "linear-gradient(to bottom, #000 0%, transparent 100%)", maskImage: "linear-gradient(to bottom, #000 0%, transparent 100%)" }} />
@@ -56,7 +56,10 @@ export default async function WorkPage({ params }: Props) {
               </svg>
             </Link>
           </div>
-          <p className="font-semibold">Work</p>
+          <div className="flex flex-col items-center">
+            <p className="font-semibold leading-tight">Work</p>
+            <p className="text-sm text-ink-muted leading-tight">{profile.displayName}</p>
+          </div>
         </div>
       </header>
 

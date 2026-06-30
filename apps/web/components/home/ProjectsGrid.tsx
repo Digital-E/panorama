@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import type { Project } from "@portfolio/schema";
-import { useViewMode, type ViewMode } from "@/lib/useViewMode";
+import { type ViewMode } from "@/lib/useViewMode";
+import { useViewTransition } from "@/lib/useViewTransition";
+import { useSortMode } from "@/lib/useSortMode";
 import { ProjectCard } from "./ProjectCard";
 import { ArchiveProjectCard } from "./ArchiveProjectCard";
 import { ListProjectCard } from "./ListProjectCard";
@@ -11,16 +12,17 @@ import { ListProjectCard } from "./ListProjectCard";
 export function ProjectsGrid({
   username,
   projects,
+  showToggle = true,
 }: {
   username: string;
   projects: Project[];
+  showToggle?: boolean;
 }) {
-  const [view, setView] = useViewMode();
-  const [sortBy, setSortBy] = useState<"default" | "az" | "year">("default");
+  const { view, setView, displayedView, contentRef } = useViewTransition();
+  const [sortBy, setSortBy] = useSortMode();
 
-  const isArchive = view === "archive" || view === "archive-sharp";
-
-  const isList = view === "list" || view === "list-text";
+  const isArchive = displayedView === "archive" || displayedView === "archive-sharp";
+  const isList = displayedView === "list" || displayedView === "list-text";
 
   const sortedProjects = isList ? [...projects].sort((a, b) => {
     if (sortBy === "az") return a.title.localeCompare(b.title);
@@ -41,8 +43,8 @@ export function ProjectsGrid({
 
   return (
     <div id="work" className="scroll-mt-3 hidden md:block">
-      {/* Toggle — desktop only */}
-      <div className="hidden md:flex items-center justify-end gap-0.5 mb-3">
+      {/* Toggle — desktop only, suppressed when rendered externally */}
+      {showToggle && <div className="hidden md:flex items-center justify-end gap-0.5 mb-3 h-7">
         {isList && (
           <div className="flex items-center gap-0.5 mr-2">
             {(["default", "az", "year"] as const).map((s) => (
@@ -70,66 +72,68 @@ export function ProjectsGrid({
             {label}
           </button>
         ))}
-      </div>
+      </div>}
 
-      {/* Masonry: 2-col md, 3-col lg — items assigned left-to-right */}
-      {(() => {
-        const gone = view === "archive-sharp" || isList || view === "list-sharp-crop";
-        const col2 = gone || isArchive ? "hidden" : "hidden md:flex lg:hidden gap-(--spacing-gutter)";
-        const col3 = gone || isArchive ? "hidden" : "hidden lg:flex gap-(--spacing-gutter)";
-        const renderCard = (project: Project) => (
-          <ProjectCard key={project.slug} username={username} project={project} />
-        );
-        return (
-          <>
-            <div className={col2}>
-              <div className="flex-1 flex flex-col gap-5">{projects.filter((_, i) => i % 2 === 0).map(renderCard)}</div>
-              <div className="flex-1 flex flex-col gap-5">{projects.filter((_, i) => i % 2 === 1).map(renderCard)}</div>
-            </div>
-            <div className={col3}>
-              <div className="flex-1 flex flex-col gap-5">{projects.filter((_, i) => i % 3 === 0).map(renderCard)}</div>
-              <div className="flex-1 flex flex-col gap-5">{projects.filter((_, i) => i % 3 === 1).map(renderCard)}</div>
-              <div className="flex-1 flex flex-col gap-5">{projects.filter((_, i) => i % 3 === 2).map(renderCard)}</div>
-            </div>
-          </>
-        );
-      })()}
+      <div ref={contentRef}>
+        {/* Masonry: 2-col md, 3-col lg — items assigned left-to-right */}
+        {(() => {
+          const gone = displayedView === "archive-sharp" || isList || displayedView === "list-sharp-crop";
+          const col2 = gone || isArchive ? "hidden" : "hidden md:flex lg:hidden gap-(--spacing-gutter)";
+          const col3 = gone || isArchive ? "hidden" : "hidden lg:flex gap-(--spacing-gutter)";
+          const renderCard = (project: Project) => (
+            <ProjectCard key={project.slug} username={username} project={project} />
+          );
+          return (
+            <>
+              <div className={col2}>
+                <div className="flex-1 flex flex-col gap-5">{projects.filter((_, i) => i % 2 === 0).map(renderCard)}</div>
+                <div className="flex-1 flex flex-col gap-5">{projects.filter((_, i) => i % 2 === 1).map(renderCard)}</div>
+              </div>
+              <div className={col3}>
+                <div className="flex-1 flex flex-col gap-5">{projects.filter((_, i) => i % 3 === 0).map(renderCard)}</div>
+                <div className="flex-1 flex flex-col gap-5">{projects.filter((_, i) => i % 3 === 1).map(renderCard)}</div>
+                <div className="flex-1 flex flex-col gap-5">{projects.filter((_, i) => i % 3 === 2).map(renderCard)}</div>
+              </div>
+            </>
+          );
+        })()}
 
-      {/* Archive: all screens for sharp, desktop-only for rounded */}
-      {isArchive && (
-        <div className={`grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 items-start ${view === "archive-sharp" ? "grid gap-x-(--spacing-gutter) gap-y-10" : "hidden md:grid gap-x-(--spacing-gutter) gap-y-10"}`}>
-          {projects.map((project) => (
-            <ArchiveProjectCard
-              key={project.slug}
-              username={username}
-              project={project}
-              rounded={view === "archive"}
-              showTitle={true}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* List */}
-      {(isList || view === "list-sharp-crop") && (
-        <div className="flex flex-col divide-y divide-[var(--color-surface-edge)]">
-          {/* Column headers */}
-          <div className="flex items-center gap-4 px-3 pb-2">
-            {view !== "list-text" && <div className="shrink-0 w-10" />}
-            <div className="flex-1 min-w-0 text-xs text-ink-muted">Project</div>
-            <span className="shrink-0 text-xs text-ink-muted">Year</span>
+        {/* Archive: all screens for sharp, desktop-only for rounded */}
+        {isArchive && (
+          <div className={`grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 items-start ${displayedView === "archive-sharp" ? "grid gap-x-(--spacing-gutter) gap-y-10" : "hidden md:grid gap-x-(--spacing-gutter) gap-y-10"}`}>
+            {projects.map((project) => (
+              <ArchiveProjectCard
+                key={project.slug}
+                username={username}
+                project={project}
+                rounded={displayedView === "archive"}
+                showTitle={true}
+              />
+            ))}
           </div>
-          {sortedProjects.map((project) => (
-            <ListProjectCard
-              key={project.slug}
-              username={username}
-              project={project}
-              rounded={view === "list-sharp-crop"}
-              thumbnail={view !== "list-text"}
-            />
-          ))}
-        </div>
-      )}
+        )}
+
+        {/* List */}
+        {(isList || displayedView === "list-sharp-crop") && (
+          <div className="flex flex-col divide-y divide-[var(--color-surface-edge)]">
+            {/* Column headers */}
+            <div className="flex items-center gap-4 px-3 pb-2">
+              {displayedView !== "list-text" && <div className="shrink-0 w-10" />}
+              <div className="flex-1 min-w-0 text-xs text-ink-muted">Project</div>
+              <span className="shrink-0 text-xs text-ink-muted">Year</span>
+            </div>
+            {sortedProjects.map((project) => (
+              <ListProjectCard
+                key={project.slug}
+                username={username}
+                project={project}
+                rounded={displayedView === "list-sharp-crop"}
+                thumbnail={displayedView !== "list-text"}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
