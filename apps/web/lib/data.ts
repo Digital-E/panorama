@@ -1,5 +1,6 @@
 import { ProfileSchema, type Profile, type Project } from "@portfolio/schema";
 import { demoProfile } from "./fixtures/demo-profile";
+import { winterProfile } from "./fixtures/winter-profile";
 
 /*
  * Data access — fixture-backed for now. Becomes a fetch to the API /
@@ -7,9 +8,13 @@ import { demoProfile } from "./fixtures/demo-profile";
  * .parse(): the renderer never receives a shape the schema didn't bless.
  */
 
+const FIXTURES = [demoProfile, winterProfile];
+const fixtureMap = new Map(FIXTURES.map((p) => [p.username, p]));
+
 export async function getProfile(username: string): Promise<Profile | null> {
-  if (username !== demoProfile.username) return null;
-  return ProfileSchema.parse(demoProfile);
+  const fixture = fixtureMap.get(username);
+  if (!fixture) return null;
+  return ProfileSchema.parse(fixture);
 }
 
 export async function getProject(
@@ -24,5 +29,5 @@ export async function getProject(
 }
 
 export async function listPublishedUsernames(): Promise<string[]> {
-  return [demoProfile.username];
+  return FIXTURES.map((p) => p.username);
 }
