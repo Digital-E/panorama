@@ -10,6 +10,24 @@ import { GlassPill } from "@/components/ui/GlassPill";
 import "swiper/css";
 import "swiper/css/zoom";
 
+const lbLoadedUrls = new Set<string>();
+
+function fadeRef(src: string) {
+  return (el: HTMLImageElement | null) => {
+    if (!el) return;
+    if (lbLoadedUrls.has(src) || el.complete) {
+      if (el.complete) lbLoadedUrls.add(src);
+      return;
+    }
+    el.style.opacity = "0";
+    el.addEventListener("load", () => {
+      el.style.transition = "opacity 0.3s ease";
+      el.style.opacity = "1";
+      lbLoadedUrls.add(src);
+    }, { once: true });
+  };
+}
+
 const SPEED = 320;
 const DISMISS_DY = 120;
 const DISMISS_VY = 0.5;
@@ -435,14 +453,7 @@ export function Lightbox({ images, index, originRect, onIndexChange, onExpand, o
                   alt={im.alt}
                   draggable={false}
                   loading={i === 0 ? "eager" : "lazy"}
-                  ref={i === 0 ? undefined : (el) => {
-                    if (!el || el.complete) return;
-                    el.style.opacity = "0";
-                    el.addEventListener("load", () => {
-                      el.style.transition = "opacity 0.25s ease";
-                      el.style.opacity = "1";
-                    }, { once: true });
-                  }}
+                  ref={fadeRef(im.src)}
                   className="max-h-full w-full object-contain"
                 />
               </div>
@@ -483,13 +494,16 @@ export function Lightbox({ images, index, originRect, onIndexChange, onExpand, o
             >
               {images.map((im, i) => (
                 <SwiperSlide key={i} style={{ width: "auto" }} onClick={() => swiperRef.current?.slideToLoop((i - initial + n) % n, 0)}>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={im.src}
-                    alt={im.alt}
-                    draggable={false}
-                    className={`h-14 w-auto object-cover rounded-lg cursor-pointer transition-opacity ${i === current ? "opacity-100" : "opacity-40"}`}
-                  />
+                  <div className="flex flex-col items-center gap-1.5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={im.src}
+                      alt={im.alt}
+                      draggable={false}
+                      className="h-14 w-auto object-cover rounded-lg cursor-pointer"
+                    />
+                    <div className={`w-1 h-1 rounded-full bg-white transition-opacity ${i === current ? "opacity-100" : "opacity-0"}`} />
+                  </div>
                 </SwiperSlide>
               ))}
             </Swiper>

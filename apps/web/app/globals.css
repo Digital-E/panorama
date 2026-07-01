@@ -115,6 +115,18 @@ dialog {
 }
 
 
+/* View-mode toggle active state — driven by data-view-mode set by inline script
+   before first paint, so the correct button is highlighted with no flash.
+   React's className takes over after hydration; both agree so there's no conflict. */
+html[data-view-mode="masonry"]       [data-view-btn="masonry"],
+html[data-view-mode="archive"]       [data-view-btn="archive"],
+html[data-view-mode="archive-sharp"] [data-view-btn="archive"],
+html[data-view-mode="list"]          [data-view-btn="list"],
+html[data-view-mode="list-text"]     [data-view-btn="list"],
+html[data-view-mode="list-sharp-crop"] [data-view-btn="list"] {
+  color: var(--color-ink);
+}
+
 /* Page transitions via next-view-transitions */
 @keyframes page-fade-in  { from { opacity: 0; scale: 0.99; } }
 @keyframes page-fade-out { to   { opacity: 0; scale: 0.99; } }

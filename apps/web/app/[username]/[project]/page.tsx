@@ -9,6 +9,7 @@ import { extractProjectImages } from "@/lib/extractProjectImages";
 import { HomeMenu } from "@/components/home/HomeMenu";
 import { MobileProjectGrid } from "@/components/project/MobileProjectGrid";
 import { ProjectInfoButton } from "@/components/project/ProjectInfoButton";
+import { FooterCard } from "@/components/home/FooterCard";
 
 export const revalidate = 3600;
 export const dynamicParams = true;
@@ -61,8 +62,9 @@ export default async function ProjectPage({ params, searchParams }: Props) {
         <ProjectHeaderBar title={project.title} year={project.year} backHref={backHref} />
       </div>
       <div data-page-content="" className="hidden md:block">
-        <main data-recede-target="" className="flex flex-col px-(--spacing-gutter-x) pt-0 pb-(--spacing-gutter) md:pl-[250px] md:pr-[150px]">
+        <main data-recede-target="" className="flex flex-col gap-(--spacing-gutter) px-(--spacing-gutter-x) pt-0 pb-(--spacing-gutter) md:pl-[250px] md:pr-[150px]">
           <ProjectGallery images={galleryImages} title={project.title} year={project.year} backHref={backHref} showToggle={false} />
+          <FooterCard profile={profile} />
         </main>
       </div>
 
@@ -89,7 +91,7 @@ export default async function ProjectPage({ params, searchParams }: Props) {
             </div>
             <div className="text-center leading-tight">
               <p className="text-[16px] font-semibold">{project.title}</p>
-              <p className="text-sm text-ink-muted">{project.year}</p>
+              <p className="text-sm text-ink-muted">{profile.displayName}</p>
             </div>
             <div className="absolute right-0">
               <ProjectInfoButton project={project} />
@@ -98,6 +100,9 @@ export default async function ProjectPage({ params, searchParams }: Props) {
         </header>
 
         <MobileProjectGrid images={galleryImages} />
+        <div className="px-(--spacing-gutter-x) pb-(--spacing-gutter) pt-(--spacing-gutter)">
+          <FooterCard profile={profile} />
+        </div>
       </div>
     </>
   );

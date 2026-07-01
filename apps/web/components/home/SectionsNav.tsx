@@ -27,8 +27,6 @@ export function SectionsNav({ profile }: { profile: Profile }) {
   };
 
   const rows: Row[] = [];
-  if (profile.experience.length > 0)
-    rows.push({ label: "Experience", onClick: () => setOpen("experience") });
   if (profile.projects.length > 0)
     rows.push({ label: "Work", href: `/${profile.username}/work` });
   if (profile.contactEnabled)

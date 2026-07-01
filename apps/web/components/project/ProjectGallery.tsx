@@ -10,8 +10,8 @@ import { Lightbox } from "@/components/project/Lightbox";
 
 
 const buttons: { mode: ViewMode; label: string }[] = [
-  { mode: "masonry", label: "Spotlight" },
-  { mode: "archive", label: "Archive" },
+  { mode: "masonry", label: "Gallery" },
+  { mode: "archive", label: "Icon" },
   { mode: "list", label: "List" },
 ];
 
@@ -64,11 +64,10 @@ export function ProjectGallery({
           {buttons.map(({ mode, label }) => (
             <button
               key={mode}
+              data-view-btn={mode}
               onClick={() => setView(mode)}
               aria-pressed={view === mode}
-              className={`px-2 py-1 text-xs rounded-lg transition-colors duration-150 ${
-                view === mode ? "text-ink" : "text-ink-muted hover:text-ink"
-              }`}
+              className="px-2 py-1 text-xs rounded-lg transition-colors duration-150 text-ink-muted hover:text-ink"
             >
               {label}
             </button>
